@@ -11,16 +11,21 @@ import Clock from '../components/Clock.jsx'
 import { useSpeech } from '../hooks/useSpeech.js'
 import { useChat } from '../hooks/useChat.js'
 import { useTimeOfDay } from '../hooks/useTimeOfDay.js'
-import { getSettings, saveSettings, migratePinIfNeeded } from '../utils/storage.js'
+import { useSubscription } from '../hooks/useSubscription.jsx'
+import { getSettings, saveSettings, migratePinIfNeeded, getActiveChildId } from '../utils/storage.js'
+import { ensureActiveChildMigrated, updateChild } from '../services/childrenService.js'
+import { getTodayMinutesUsed, addMinutesUsed, resetTodayUsage } from '../utils/screenTime.js'
 import { greetingWord } from '../utils/timeOfDay.js'
 import { supabase } from '../lib/supabase.js'
 import { fetchMessageById, markPlayed, fetchLatestUnplayed } from '../services/messageService.js'
+import { fetchLatestUndelivered, markStoryDelivered } from '../services/storyRequestService.js'
 import SingAlong from '../components/SingAlong.jsx'
 import DailyActivity from '../components/DailyActivity.jsx'
 import { getDailyActivity, isDailyActivityDismissed, dismissDailyActivity } from '../utils/dailyActivities.js'
 import { getModeVoice } from '../utils/modeVoice.js'
 import { pickRandom } from '../utils/prompts.js'
 import styles from './ChildPage.module.css'
+import { IconMail, IconCamera, IconPlay, IconMusic, IconBook, IconPalette, IconGear } from '../components/icons.jsx'
 
 const WELCOME_BACK = [
   (childName, buddyName) => `Hey ${childName}, I'm back! What do you want to do now?`,
@@ -48,9 +53,15 @@ export default function ChildPage({ session }) {
   const navigate = useNavigate()
   const [settings, setSettings] = useState(() => getSettings())
 
-  // One-time migration of any pre-existing plaintext parentPin to a hash.
+  // One-time migrations: pick/create the active child profile first (so
+  // settings resolve from the right namespaced slot), then hash any
+  // pre-existing plaintext parentPin. Both are idempotent and cheap once
+  // already done.
   useEffect(() => {
-    migratePinIfNeeded(getSettings()).then(setSettings)
+    ensureActiveChildMigrated()
+      .catch((err) => { console.error('Child profile migration failed, using local settings:', err) })
+      .then(() => migratePinIfNeeded(getSettings()))
+      .then(setSettings)
   }, [])
   const [buddyText, setBuddyText] = useState('')
   const [userText, setUserText] = useState('')
@@ -63,6 +74,7 @@ export default function ChildPage({ session }) {
   const speech = useSpeech(settings)
   const chat = useChat(settings)
   const { partOfDay } = useTimeOfDay()
+  const { isPro } = useSubscription()
   const [wordIndex, setWordIndex] = useState(-1)
   const rafRef = useRef(null)
   const [showActivity, setShowActivity] = useState(() => !hasGreetedFully && !isDailyActivityDismissed())
@@ -72,6 +84,42 @@ export default function ChildPage({ session }) {
   // 'playing' = child said yes and the recording is playing/played.
   const [msgPhase, setMsgPhase] = useState(null)
   const parentAudioRef = useRef(null)
+
+  // ── Screen-time limit (Pro) ──────────────────────────────────────────
+  // Ticks while the tab is visible, in real wall-clock minutes — a paused/
+  // backgrounded tab doesn't burn down the limit. Resets automatically at
+  // local midnight since the storage key is date-scoped.
+  const dailyLimit = isPro ? (settings.dailyLimitMinutes || 0) : 0
+  const [minutesUsed, setMinutesUsed] = useState(() => getTodayMinutesUsed(getActiveChildId()))
+  const [showWindDown, setShowWindDown] = useState(false)
+  const [showWindDownPin, setShowWindDownPin] = useState(false)
+  const warnedRef = useRef(false)
+
+  useEffect(() => {
+    if (!dailyLimit) return
+    const TICK_MINUTES = 0.5
+    const id = setInterval(() => {
+      if (document.hidden) return
+      const total = addMinutesUsed(getActiveChildId(), TICK_MINUTES)
+      setMinutesUsed(total)
+      const left = dailyLimit - total
+      if (left <= 5 && !warnedRef.current) {
+        warnedRef.current = true
+        speech.speak("Just a heads up — five more minutes, then it's time for a little break!")
+      }
+      if (left <= 0) setShowWindDown(true)
+    }, TICK_MINUTES * 60 * 1000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyLimit])
+
+  const handleWindDownUnlock = () => {
+    resetTodayUsage(getActiveChildId())
+    setMinutesUsed(0)
+    warnedRef.current = false
+    setShowWindDown(false)
+    setShowWindDownPin(false)
+  }
   // Timer ref for clearing bubble text after speech ends
   const bubbleClearRef = useRef(null)
 
@@ -79,11 +127,17 @@ export default function ChildPage({ session }) {
   const buddyName       = settings.buddyName       || 'Buddy'
   const avatarType      = settings.avatarType      || 'bear'
 
-  const handlePickerSave = ({ type, name, color }) => {
-    const next = { ...settings, avatarType: type, buddyName: name, avatarColor: color, onboarded: true }
+  const handlePickerSave = ({ type, name, color, costume }) => {
+    const next = { ...settings, avatarType: type, buddyName: name, avatarColor: color, costume, onboarded: true }
     saveSettings(next)
     setSettings(next)
     setShowPicker(false)
+    // Keep the cloud child row (used by the Parent dashboard's child
+    // switcher) in sync with the local identity fields.
+    const childId = getActiveChildId()
+    if (childId) {
+      updateChild(childId, { buddyName: name, avatarType: type, avatarColor: color }).catch(() => {})
+    }
   }
 
   // "Maybe later" on first run still marks onboarding done so the picker
@@ -286,6 +340,64 @@ export default function ChildPage({ session }) {
     setShowActivity(false)
   }
 
+  // ── Custom bedtime story request (Pro) ───────────────────────────────
+  // A parent can leave a story theme from the dashboard; Buddy offers it
+  // next session, ask-first like parent voice messages — it never just
+  // launches into a story unprompted.
+  const [storyRequest, setStoryRequest] = useState(null)
+  const [storyPhase, setStoryPhase] = useState(null) // null | 'ask'
+
+  useEffect(() => {
+    fetchLatestUndelivered().then((row) => { if (row) setStoryRequest(row) }).catch(() => {})
+  }, [])
+
+  // Wait until nothing else (parent message, onboarding, PIN) is competing
+  // for Buddy's voice before offering the story.
+  useEffect(() => {
+    if (!storyRequest || storyPhase === 'ask' || msgPhase || showPicker || showPin) return
+    setStoryPhase('ask')
+  }, [storyRequest, msgPhase, showPicker, showPin, storyPhase])
+
+  useEffect(() => {
+    if (storyPhase !== 'ask' || !storyRequest) return
+    speech.stopListening()
+    const prompt = 'Guess what? Someone left you a story idea! Want to hear it?'
+    setBuddyText(prompt)
+    setUiStatus('speaking')
+    speech.speak(prompt, () => {
+      if (!speech.supported.stt) { setUiStatus('idle'); return } // wait for tap-buttons instead
+      setUiStatus('listening')
+      speech.startListening((transcript) => {
+        setUiStatus('idle')
+        if (/\b(yes|yeah|yep|sure|please|ok|okay)\b/i.test(transcript)) {
+          playStoryRequestNow()
+        } else {
+          declineStoryRequest()
+        }
+      })
+    })
+  }, [storyPhase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const playStoryRequestNow = async () => {
+    if (!storyRequest) return
+    speech.stopSpeaking()
+    speech.stopListening()
+    setStoryPhase(null)
+    setUiStatus('thinking')
+    const reply = await chat.sendMessage(`Tell me a story about: ${storyRequest.prompt_text}`, 'chat')
+    setBuddyText(reply)
+    setUiStatus('speaking')
+    speech.speak(reply, () => { setUiStatus('idle'); scheduleBubbleClear() })
+    markStoryDelivered(storyRequest.id).catch(() => {})
+    setStoryRequest(null)
+  }
+
+  const declineStoryRequest = () => {
+    speech.stopListening()
+    setStoryPhase(null)
+    setBuddyText('')
+  }
+
   // Boot greeting — Buddy announces the daily activity by voice instead of
   // it sitting in a persistent card; the card itself hides the moment he's
   // done speaking it. Only the first mount this session gets the full
@@ -413,6 +525,28 @@ export default function ChildPage({ session }) {
     navigate('/parent')
   }
 
+  // Screen-time limit reached — a calm goodnight screen, not a hard wall.
+  // A grown-up can unlock the rest of today with the same parent PIN used
+  // everywhere else in the app.
+  if (showWindDown) {
+    return (
+      <div className={styles.windDownPage}>
+        <BuddyAvatar status="idle" avatarColor={settings.avatarColor} type={avatarType} costume={settings.costume} size={150} live={false} />
+        <h1 className={styles.windDownTitle}>Great playing today, {childName}!</h1>
+        <p className={styles.windDownSub}>Time for a little break. {buddyName} will be right here when you're back!</p>
+        <button className={styles.windDownUnlock} onClick={() => setShowWindDownPin(true)}>
+          Ask a grown-up for more time
+        </button>
+        {showWindDownPin && (
+          <>
+            <ParentPin correctPinHash={settings.parentPinHash} onSuccess={handleWindDownUnlock} />
+            <button className={styles.pinDismiss} onClick={() => setShowWindDownPin(false)} aria-label="Cancel" />
+          </>
+        )}
+      </div>
+    )
+  }
+
   const voiceOnly = settings.voiceOnly || false
 
   if (voiceOnly) {
@@ -459,6 +593,9 @@ export default function ChildPage({ session }) {
     return (
       <>
         <SingAlong
+          avatarColor={settings.avatarColor}
+          avatarType={avatarType}
+          costume={settings.costume}
           onExit={() => {
             cancelBubbleClear()
             const intro = chat.switchMode('chat')
@@ -502,12 +639,6 @@ export default function ChildPage({ session }) {
           {/* Top bar */}
           <div className={styles.topBar}>
             <div className={styles.topBarLeft}>
-              <BuddyMenu
-                onSongs={handleStartSing}
-                onLearn={() => navigate('/courses')}
-                onCustomize={() => setShowPicker(true)}
-                onSettings={() => setShowPin(true)}
-              />
               {chat.mode !== 'chat' && (
                 <span className={styles.modeLabel}>{chat.mode} mode</span>
               )}
@@ -521,10 +652,10 @@ export default function ChildPage({ session }) {
                   aria-label="Message from your parent, tap to hear it"
                   title="Message from your parent!"
                 >
-                  📩
+                  <IconMail size={22} />
                 </button>
               )}
-              {cameraOn && <span className={styles.cameraIndicator} title="Camera on">📹</span>}
+              {cameraOn && <span className={styles.cameraIndicator} title="Camera on" aria-label="Camera on"><IconCamera size={18} /></span>}
             </div>
           </div>
 
@@ -538,7 +669,7 @@ export default function ChildPage({ session }) {
               <path d="M0 48 Q100 30 210 45 T375 41 V60 H0 Z" fill="rgba(255,255,255,0.45)" />
             </svg>
             <p className={styles.buddyNameTag}>{buddyName}</p>
-            <BuddyAvatar status={uiStatus} avatarColor={settings.avatarColor} type={avatarType} audioRef={speech.audioRef} partOfDay={partOfDay} />
+            <BuddyAvatar status={uiStatus} avatarColor={settings.avatarColor} type={avatarType} costume={settings.costume} size={222} audioRef={speech.audioRef} partOfDay={partOfDay} />
           </div>
 
           {/* Speech bubble */}
@@ -551,14 +682,37 @@ export default function ChildPage({ session }) {
             />
           </div>
 
-          {/* Voice button — main CTA, above the mode strip */}
+          {/* Voice button + dock — replaces the old hamburger menu with big
+              tactile destinations a child can actually find and press. */}
           <div className={styles.voiceArea}>
             {!speech.supported.stt && (
               <p className={styles.noMic}>
                 Voice not supported in this browser. Try Chrome!
               </p>
             )}
-            <VoiceButton status={uiStatus} onPress={handleVoicePress} buddyName={buddyName} />
+            <div className={styles.dock}>
+              <div className={styles.dockSide}>
+                <button className={styles.dockBtn} onClick={handleStartSing}>
+                  <span className={`${styles.dockIcon} ${styles.dockPink}`}><IconMusic size={26} /></span>
+                  <span className={styles.dockLabel}>Songs</span>
+                </button>
+                <button className={styles.dockBtn} onClick={() => navigate('/courses')}>
+                  <span className={`${styles.dockIcon} ${styles.dockSky}`}><IconBook size={26} /></span>
+                  <span className={styles.dockLabel}>Learn</span>
+                </button>
+              </div>
+              <VoiceButton status={uiStatus} onPress={handleVoicePress} buddyName={buddyName} />
+              <div className={styles.dockSide}>
+                <button className={styles.dockBtn} onClick={() => setShowPicker(true)}>
+                  <span className={`${styles.dockIcon} ${styles.dockTangerine}`}><IconPalette size={26} /></span>
+                  <span className={styles.dockLabel}>My Buddy</span>
+                </button>
+                <button className={`${styles.dockBtn} ${styles.dockParent}`} onClick={() => setShowPin(true)}>
+                  <span className={`${styles.dockIcon} ${styles.dockGrape}`}><IconGear size={26} /></span>
+                  <span className={styles.dockLabel}>Parents</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -586,6 +740,8 @@ export default function ChildPage({ session }) {
           currentType={avatarType}
           currentName={buddyName}
           currentColor={settings.avatarColor}
+          currentCostume={settings.costume}
+          session={session}
           onSave={handlePickerSave}
           onClose={handlePickerClose}
         />
@@ -601,6 +757,18 @@ export default function ChildPage({ session }) {
         onReplay={replayParentMessage}
         onDismiss={dismissParentMessage}
       />
+
+      {/* Custom bedtime story request (Pro) — tap fallback for the spoken ask */}
+      {storyPhase === 'ask' && (
+        <div className={styles.msgOverlay}>
+          <div className={styles.msgBubble}>
+            <div className={styles.msgIcon}><IconBook size={30} /></div>
+            <p className={styles.msgTitle}>Someone left you a story idea! Want to hear it?</p>
+            <button className={styles.msgPlayBtn} onClick={playStoryRequestNow}><IconPlay size={16} /> Yes, tell me!</button>
+            <button className={styles.msgDismissBtn} onClick={declineStoryRequest}>Not now</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -619,22 +787,22 @@ function ParentMessageOverlay({ msgPhase, showEnvelope = true, envelopeClass, on
           aria-label="Message from your parent, tap to hear it"
           title="Message from your parent!"
         >
-          📩
+          <IconMail size={22} />
         </button>
       )}
       <div className={styles.msgOverlay}>
         <div className={styles.msgBubble}>
-          <div className={styles.msgIcon}>📩</div>
+          <div className={styles.msgIcon}><IconMail size={30} /></div>
           {msgPhase === 'ask' ? (
             <>
               <p className={styles.msgTitle}>Message from your parent! Want to hear it?</p>
-              <button className={styles.msgPlayBtn} onClick={onYes}>▶ Yes, play it!</button>
+              <button className={styles.msgPlayBtn} onClick={onYes}><IconPlay size={16} /> Yes, play it!</button>
               <button className={styles.msgDismissBtn} onClick={onNo}>Not now</button>
             </>
           ) : (
             <>
               <p className={styles.msgTitle}>Message from your parent!</p>
-              <button className={styles.msgPlayBtn} onClick={onReplay}>▶ Play again</button>
+              <button className={styles.msgPlayBtn} onClick={onReplay}><IconPlay size={16} /> Play again</button>
               <button className={styles.msgDismissBtn} onClick={onDismiss}>Got it!</button>
             </>
           )}

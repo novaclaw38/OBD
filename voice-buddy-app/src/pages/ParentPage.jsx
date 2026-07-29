@@ -1,21 +1,36 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PrintSheet from '../components/PrintSheet.jsx'
-import { getSettings, saveSettings, migratePinIfNeeded, hashPin } from '../utils/storage.js'
+import { getSettings, saveSettings, migratePinIfNeeded, hashPin, getActiveChildId } from '../utils/storage.js'
 import { testConnection } from '../services/chatService.js'
 import { fetchHistory, deleteHistory } from '../services/historyService.js'
 import { sendVoiceMessage, fetchMessages, fetchMessageById, markPlayed } from '../services/messageService.js'
+import { sendStoryRequest, fetchSentStoryRequests } from '../services/storyRequestService.js'
 import { supabase } from '../lib/supabase.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import { useCompletions } from '../hooks/useCompletions.js'
+import { useSubscription } from '../hooks/useSubscription.jsx'
 import { VOICE_OPTIONS, DEFAULT_VOICE, isValidVoiceKey } from '../utils/voiceOptions.js'
 import { COURSES } from '../utils/courses.js'
+import { updateChild } from '../services/childrenService.js'
+import ChildrenManager from '../components/ChildrenManager.jsx'
 import styles from './ParentPage.module.css'
+import {
+  IconArrowLeft, IconCheck, IconX, IconMic, IconSpeaker, IconPlay, IconPause,
+  IconCamera, IconPhoto, IconSun, IconMoon, IconPrinter, IconBook, IconPalette, IconLock,
+} from '../components/icons.jsx'
+import UpgradePrompt from '../components/UpgradePrompt.jsx'
+
+// Which settings keys mirror a field on the cloud `children` row — kept in
+// sync so the Parent dashboard's child switcher shows current info.
+const CHILD_ROW_FIELD = {
+  childName: 'name', buddyName: 'buddyName', avatarType: 'avatarType', avatarColor: 'avatarColor',
+}
 
 // Grouped so the tab bar reads as clusters of related settings rather than
 // eight flat, same-weight buttons in a row.
 const TAB_GROUPS = [
-  { label: 'Child',    tabs: ['Settings', 'Routines'] },
+  { label: 'Child',    tabs: ['Children', 'Settings', 'Routines'] },
   { label: 'Learning', tabs: ['Learning'] },
   { label: 'Connect',  tabs: ['Messages', 'Camera', 'History', 'Print'] },
   { label: 'Billing',  tabs: ['Subscription', 'Account'] },
@@ -33,6 +48,8 @@ export default function ParentPage({ session }) {
   const [tab, setTab] = useState('Settings')
   const [settings, setSettings] = useState(() => getSettings())
   const speech = useSpeech(settings)
+  const { isPro } = useSubscription()
+  const [showLimitUpgrade, setShowLimitUpgrade] = useState(false)
   const [previewStatus, setPreviewStatus] = useState('idle') // idle | speaking
   const [pinInput, setPinInput] = useState('')
   const [testStatus, setTestStatus] = useState(null)
@@ -44,6 +61,9 @@ export default function ParentPage({ session }) {
   const [recStatus, setRecStatus] = useState('idle') // idle | recording | sending | sent | error
   const [sentMessages, setSentMessages] = useState([])
   const [msgsLoading, setMsgsLoading] = useState(false)
+  const [storyText, setStoryText] = useState('')
+  const [storyStatus, setStoryStatus] = useState('idle') // idle | sending | sent | error
+  const [sentStories, setSentStories] = useState([])
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const camVideoRef   = useRef(null)
@@ -73,13 +93,30 @@ export default function ParentPage({ session }) {
     migratePinIfNeeded(getSettings()).then(setSettings)
   }, [])
 
-  // Load sent messages when Messages tab opens
+  // Load sent messages + story requests when Messages tab opens
   useEffect(() => {
     if (tab !== 'Messages') return
     setMsgsLoading(true)
     fetchMessages().then(setSentMessages).catch(console.error).finally(() => setMsgsLoading(false))
+    fetchSentStoryRequests().then(setSentStories).catch(console.error)
     return () => { playAudioRef.current?.pause(); setPlayingMsgId(null) }
   }, [tab])
+
+  const handleSendStory = async () => {
+    const text = storyText.trim()
+    if (!text) return
+    setStoryStatus('sending')
+    try {
+      await sendStoryRequest(text)
+      setStoryText('')
+      setStoryStatus('sent')
+      fetchSentStoryRequests().then(setSentStories).catch(console.error)
+      setTimeout(() => setStoryStatus('idle'), 2000)
+    } catch (err) {
+      console.error('Failed to send story request:', err)
+      setStoryStatus('error')
+    }
+  }
 
   // Don't leave a stale "start camera?" confirmation showing if the parent
   // navigates away from the Camera tab and back.
@@ -174,6 +211,12 @@ export default function ParentPage({ session }) {
     setShowSaved(true)
     clearTimeout(savedFlashRef.current)
     savedFlashRef.current = setTimeout(() => setShowSaved(false), 1500)
+
+    const rowField = CHILD_ROW_FIELD[key]
+    const childId = getActiveChildId()
+    if (rowField && childId) {
+      updateChild(childId, { [rowField]: value }).catch(() => {})
+    }
   }
 
   // Lets a parent hear the currently-selected voice right here, instead of
@@ -385,7 +428,7 @@ export default function ParentPage({ session }) {
       {/* Header */}
       <div className={styles.header}>
         <button className={styles.backBtn} onClick={() => navigate('/')}>
-          ← Back to Buddy
+          <IconArrowLeft size={16} /> Back to Buddy
         </button>
         <h1 className={styles.title}>Parent Dashboard</h1>
         <button className={styles.btnDanger} style={{ flexShrink: 0 }} onClick={handleLogout}>
@@ -415,11 +458,18 @@ export default function ParentPage({ session }) {
       <div className={styles.content}>
 
         {/* ---- SETTINGS ---- */}
+        {tab === 'Children' && (
+          <ChildrenManager
+            session={session}
+            onSwitched={() => { setSettings(getSettings()); navigate('/app') }}
+          />
+        )}
+
         {tab === 'Settings' && (
           <div className={styles.section}>
             <div className={styles.sectionHeaderRow}>
               <h2 className={styles.sectionTitle}>Child Settings</h2>
-              <span className={`${styles.savedFlash} ${showSaved ? styles.savedFlashVisible : ''}`}>✓ Saved</span>
+              <span className={`${styles.savedFlash} ${showSaved ? styles.savedFlashVisible : ''}`}><IconCheck size={13} /> Saved</span>
             </div>
 
             <div className={styles.field}>
@@ -470,7 +520,7 @@ export default function ParentPage({ session }) {
               {pinError ? (
                 <p className={styles.testError}>{pinError}</p>
               ) : pinSaved ? (
-                <p className={styles.hint}>✓ New PIN saved</p>
+                <p className={styles.hint}><IconCheck size={13} /> New PIN saved</p>
               ) : (
                 <p className={styles.hint}>
                   {pinStage === 'confirm' ? 'Type it once more to confirm' : 'Leave blank to keep your current PIN'}
@@ -516,10 +566,34 @@ export default function ParentPage({ session }) {
                   onChange={(e) => updateSetting('voiceOnly', e.target.checked)}
                 />
                 <label htmlFor="voiceOnly" className={styles.toggleLabel}>
-                  {settings.voiceOnly ? '🎙️ Voice only (screen off)' : '📱 Full screen (default)'}
+                  {settings.voiceOnly ? 'Voice only (screen off)' : 'Full screen (default)'}
                 </label>
               </div>
               <p className={styles.hint}>Turn on to hide all visuals — just a glowing orb. Great for bedtime or reducing screen time.</p>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Daily Time Limit {!isPro && <IconLock size={11} />}</label>
+              {isPro ? (
+                <>
+                  <select
+                    className={styles.input}
+                    value={settings.dailyLimitMinutes || ''}
+                    onChange={(e) => updateSetting('dailyLimitMinutes', e.target.value ? Number(e.target.value) : null)}
+                  >
+                    <option value="">Off</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                  <p className={styles.hint}>Buddy gives a friendly heads-up 5 minutes before, then pauses with a gentle goodnight screen. Your PIN unlocks more time instantly.</p>
+                </>
+              ) : (
+                <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setShowLimitUpgrade(true)}>
+                  Upgrade to Pro to set a daily limit
+                </button>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -542,7 +616,7 @@ export default function ParentPage({ session }) {
                   onClick={handlePreviewVoice}
                   disabled={previewStatus === 'speaking'}
                 >
-                  {previewStatus === 'speaking' ? '🔊 Playing...' : '▶ Preview'}
+                  {previewStatus === 'speaking' ? <><IconSpeaker size={15} /> Playing…</> : <><IconPlay size={15} /> Preview</>}
                 </button>
               </div>
               <p className={styles.hint}>
@@ -552,7 +626,7 @@ export default function ParentPage({ session }) {
 
             <div className={styles.field}>
               <button className={styles.linkBtn} onClick={handleTestConnection} disabled={testStatus === 'testing'}>
-                {testStatus === 'testing' ? 'Testing connection...' : testStatus === 'ok' ? '✓ Connected!' : testStatus === 'fail' ? '✗ Connection failed' : "Buddy not responding? Test connection"}
+                {testStatus === 'testing' ? 'Testing connection...' : testStatus === 'ok' ? <><IconCheck size={14} /> Connected!</> : testStatus === 'fail' ? <><IconX size={14} /> Connection failed</> : "Buddy not responding? Test connection"}
               </button>
               {testStatus === 'fail' && testError && (
                 <p className={styles.testError}>{testError}</p>
@@ -655,13 +729,13 @@ export default function ParentPage({ session }) {
           <div className={styles.section}>
             <RoutineEditor
               label="Morning Routine"
-              emoji="☀️"
+              icon={<IconSun size={18} />}
               steps={settings.morningRoutine}
               onChange={(steps) => updateSetting('morningRoutine', steps)}
             />
             <RoutineEditor
               label="Bedtime Routine"
-              emoji="🌙"
+              icon={<IconMoon size={18} />}
               steps={settings.bedtimeRoutine}
               onChange={(steps) => updateSetting('bedtimeRoutine', steps)}
             />
@@ -713,7 +787,7 @@ export default function ParentPage({ session }) {
                 disabled={recStatus === 'sending'}
                 aria-label={recStatus === 'recording' ? 'Recording, release to send' : 'Hold to record a voice message'}
               >
-                {recStatus === 'sent' ? '✓' : recStatus === 'error' ? '✗' : '🎤'}
+                {recStatus === 'sent' ? <IconCheck size={22} /> : recStatus === 'error' ? <IconX size={22} /> : <IconMic size={22} />}
               </button>
               <p className={styles.recLabel}>
                 {recStatus === 'recording' ? 'Recording... release to send'
@@ -743,11 +817,58 @@ export default function ParentPage({ session }) {
                       </span>
                     </div>
                     <button className={styles.btnSmall} onClick={() => handlePlayMessage(msg)}>
-                      {playingMsgId === msg.id ? '⏸ Pause' : '▶ Play what you sent'}
+                      {playingMsgId === msg.id ? <><IconPause size={14} /> Pause</> : <><IconPlay size={14} /> Play what you sent</>}
                     </button>
                   </div>
                 ))}
               </div>
+            )}
+
+            <h2 className={styles.sectionTitle} style={{ marginTop: 24 }}>
+              Bedtime Story Idea {!isPro && <IconLock size={11} />}
+            </h2>
+            {isPro ? (
+              <>
+                <p className={styles.hint} style={{ marginBottom: 12 }}>
+                  Leave a theme and Buddy will offer to tell it as a story next time — ask-first, just like your voice messages.
+                </p>
+                <textarea
+                  className={styles.input}
+                  style={{ minHeight: 72, resize: 'vertical' }}
+                  value={storyText}
+                  onChange={(e) => setStoryText(e.target.value)}
+                  placeholder="e.g. a brave little dragon who's scared of the dark"
+                  maxLength={200}
+                />
+                <button
+                  className={styles.btnSave}
+                  style={{ marginTop: 10 }}
+                  onClick={handleSendStory}
+                  disabled={!storyText.trim() || storyStatus === 'sending'}
+                >
+                  {storyStatus === 'sending' ? 'Sending...' : storyStatus === 'sent' ? <><IconCheck size={14} /> Sent!</> : 'Send story idea'}
+                </button>
+
+                {sentStories.length > 0 && (
+                  <div className={styles.historyList} style={{ marginTop: 16 }}>
+                    {sentStories.map((s) => (
+                      <div key={s.id} className={styles.historyEntry}>
+                        <div className={styles.entryMeta}>
+                          <span className={`${styles.modeBadge} ${s.delivered ? styles.chat : styles.story}`}>
+                            {s.delivered ? 'told' : 'waiting'}
+                          </span>
+                          <span className={styles.entryDate}>{new Date(s.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className={styles.hint}>{s.prompt_text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setShowLimitUpgrade(true)}>
+                Upgrade to Pro to leave Buddy a story idea
+              </button>
             )}
           </div>
         )}
@@ -771,7 +892,7 @@ export default function ParentPage({ session }) {
               />
               {camStatus !== 'streaming' && (
                 <div className={styles.cameraPlaceholder}>
-                  {camStatus === 'idle'       && <span>📷</span>}
+                  {camStatus === 'idle'       && <span className={styles.camIdleIcon}><IconPhoto size={34} /></span>}
                   {camStatus === 'requesting' && <p className={styles.camMsg}>Connecting to device...</p>}
                   {camStatus === 'error'      && <p className={styles.camErr}>{camError}</p>}
                 </div>
@@ -793,7 +914,7 @@ export default function ParentPage({ session }) {
               <div className={styles.btnRow} style={{ marginTop: 16 }}>
                 {(camStatus === 'idle' || camStatus === 'error') ? (
                   <button className={styles.btnSave} onClick={() => setCamConfirming(true)}>
-                    📹 Start Camera
+                    <IconCamera size={16} /> Start Camera
                   </button>
                 ) : (
                   <button className={styles.btnDanger} onClick={stopCamera}>
@@ -804,7 +925,7 @@ export default function ParentPage({ session }) {
             )}
 
             <p className={styles.hint} style={{ marginTop: 12 }}>
-              A 📹 icon will appear on the kids screen while the camera is active.
+              A camera icon will appear on the kids screen while the camera is active.
             </p>
           </div>
         )}
@@ -865,7 +986,7 @@ export default function ParentPage({ session }) {
                     className={`${styles.printTypeBtn} ${printType === t ? styles.activePrintType : ''}`}
                     onClick={() => setPrintType(t)}
                   >
-                    {t === 'story' ? '📖 Story' : t === 'activity' ? '🎨 Activity' : '🎮 Games'}
+                    {t === 'story' ? <><IconBook size={15} /> Story</> : t === 'activity' ? <><IconPalette size={15} /> Activity</> : <>Games</>}
                   </button>
                 ))}
               </div>
@@ -887,7 +1008,7 @@ export default function ParentPage({ session }) {
                 onClick={handlePrint}
                 disabled={!printData}
               >
-                🖨️ Print Now
+                <IconPrinter size={16} /> Print Now
               </button>
               <button
                 className={styles.btnSave}
@@ -921,6 +1042,8 @@ export default function ParentPage({ session }) {
           </div>
         )}
       </div>
+
+      {showLimitUpgrade && <UpgradePrompt session={session} onClose={() => setShowLimitUpgrade(false)} />}
     </main>
   )
 }
@@ -971,7 +1094,7 @@ function SubscriptionSummary({ subInfo }) {
 }
 
 /* ---- Routine Editor ---- */
-function RoutineEditor({ label, emoji, steps, onChange }) {
+function RoutineEditor({ label, icon, steps, onChange }) {
   const [newStep, setNewStep] = useState('')
 
   const move = (i, dir) => {
@@ -992,7 +1115,7 @@ function RoutineEditor({ label, emoji, steps, onChange }) {
 
   return (
     <div style={{ marginBottom: 28 }}>
-      <h3 className={styles.routineTitle}>{emoji} {label}</h3>
+      <h3 className={styles.routineTitle}>{icon} {label}</h3>
       <div className={styles.routineList}>
         {steps.map((step, i) => (
           <div key={i} className={styles.routineItem}>
@@ -1001,7 +1124,7 @@ function RoutineEditor({ label, emoji, steps, onChange }) {
             <div className={styles.routineActions}>
               <button onClick={() => move(i, -1)} disabled={i === 0} className={styles.moveBtn} aria-label={`Move "${step}" up`}>▲</button>
               <button onClick={() => move(i, 1)} disabled={i === steps.length - 1} className={styles.moveBtn} aria-label={`Move "${step}" down`}>▼</button>
-              <button onClick={() => remove(i)} className={styles.removeBtn} aria-label={`Remove "${step}"`}>✕</button>
+              <button onClick={() => remove(i)} className={styles.removeBtn} aria-label={`Remove "${step}"`}><IconX size={14} /></button>
             </div>
           </div>
         ))}

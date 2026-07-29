@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styles from './LandingPage.module.css'
+import {
+  IconSparkle, IconCamera, IconLock, IconBolt, IconMic, IconMail, IconHeart,
+  IconBook, IconMusic, IconCheck, IconX, IconPlay, IconShield,
+} from '../components/icons.jsx'
 
 // Floating particle field
 function Particles({ count = 36 }) {
@@ -86,22 +90,23 @@ function Waveform() {
   )
 }
 
-// Phone mockup for camera section
+// Phone mockup for camera section — a real screenshot of the child screen,
+// framed as the live view a parent sees from the dashboard.
 function PhoneMockup() {
   return (
     <div className={styles.phone}>
       <div className={styles.phoneScreen}>
-        <div className={styles.cameraFeed}>
-          <div className={styles.scanLine} />
-          <div className={styles.cameraGrid}>
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className={styles.gridCell} />
-            ))}
-          </div>
-          <div className={styles.cameraOverlay}>
-            <span className={styles.liveTag}>● LIVE</span>
-            <span className={styles.childTag}>Sam 😊</span>
-          </div>
+        <img
+          className={styles.screenShot}
+          src="/screenshots/child-home.webp"
+          alt="Live view of the Buddy child screen"
+          loading="lazy"
+          width="390"
+          height="625"
+        />
+        <div className={styles.cameraOverlay}>
+          <span className={styles.liveTag}>● LIVE</span>
+          <span className={styles.childTag}>Sam</span>
         </div>
       </div>
       <div className={styles.phoneNotch} />
@@ -125,7 +130,20 @@ function ChatDemo() {
           className={`${styles.chatBubble} ${b.role === 'child' ? styles.chatChild : styles.chatBuddy}`}
           style={{ animationDelay: `${b.delay}s` }}
         >
-          {b.role === 'buddy' && <span className={styles.chatAvatar}>🐻</span>}
+          {b.role === 'buddy' && (
+            <span className={styles.chatAvatar} aria-hidden="true">
+              <svg viewBox="0 0 40 40" width="26" height="26">
+                <circle cx="9" cy="9" r="7" fill="#7c3aed" />
+                <circle cx="31" cy="9" r="7" fill="#7c3aed" />
+                <circle cx="20" cy="24" r="16" fill="#7c3aed" />
+                <circle cx="14" cy="21" r="4" fill="white" />
+                <circle cx="26" cy="21" r="4" fill="white" />
+                <circle cx="15" cy="20" r="2.2" fill="#1e1b4b" />
+                <circle cx="27" cy="20" r="2.2" fill="#1e1b4b" />
+                <path d="M 13 29 Q 20 34 27 29" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              </svg>
+            </span>
+          )}
           <span className={styles.chatText}>{b.text}</span>
         </div>
       ))}
@@ -180,30 +198,35 @@ export default function LandingPage() {
   const [navHidden, setNavHidden] = useState(false)
   const [pastHero, setPastHero] = useState(false)
   const lastY = useRef(0)
+  const pageRef = useRef(null)
 
   // Hide nav on scroll down, show on scroll up (rAF-throttled, one measurement per frame).
   // Also tracks whether we've scrolled past the hero, to show a sticky mobile
   // CTA bar — on a long single-page scroll, the only "Start Free Trial"
   // button shouldn't require scrolling all the way back to the top.
+  // NOTE: the page scrolls inside .page (body is overflow:hidden), so the
+  // listener must attach to that element — window.scrollY never changes here.
   useEffect(() => {
+    const el = pageRef.current
+    if (!el) return
     let ticking = false
     const onScroll = () => {
       if (ticking) return
       ticking = true
       requestAnimationFrame(() => {
-        const y = window.scrollY
+        const y = el.scrollTop
         setNavHidden(y > 80 && y > lastY.current)
         setPastHero(y > window.innerHeight * 0.6)
         lastY.current = y
         ticking = false
       })
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} ref={pageRef}>
       {/* ── NAV ── */}
       <nav className={`${styles.nav} ${navHidden ? styles.navHidden : ''}`}>
         <div className={styles.navInner}>
@@ -231,7 +254,7 @@ export default function LandingPage() {
       <section className={styles.hero}>
         <Particles />
         <div className={styles.heroContent}>
-          <div className={styles.heroBadge}>✨ 10 days free, no card needed</div>
+          <div className={styles.heroBadge}><IconSparkle size={15} /> 10 days free, no card needed</div>
           <h1 className={styles.heroTitle}>
             Meet <span className={styles.gradientText}>Buddy</span>
             <br />your child's AI best friend
@@ -249,7 +272,7 @@ export default function LandingPage() {
               Start Free Trial
             </button>
             <button className={styles.ctaGhost} onClick={() => navigate('/login')}>
-              Log In →
+              Log In
             </button>
           </div>
           <BuddyHero />
@@ -276,9 +299,9 @@ export default function LandingPage() {
               just a tap away.
             </p>
             <div className={styles.featureChips}>
-              <span>📹 Live camera</span>
-              <span>🔒 Signed-in parents only</span>
-              <span>⚡ Real-time</span>
+              <span><IconCamera size={14} /> Live camera</span>
+              <span><IconLock size={14} /> Signed-in parents only</span>
+              <span><IconBolt size={14} /> Real-time</span>
             </div>
           </div>
         </RevealSection>
@@ -293,19 +316,19 @@ export default function LandingPage() {
               even if you're not home. Your child hears your voice whenever they need it most.
             </p>
             <div className={styles.featureChips}>
-              <span>🎙️ Voice notes</span>
-              <span>💌 Instant delivery</span>
-              <span>🐻 Buddy plays it back</span>
+              <span><IconMic size={14} /> Voice notes</span>
+              <span><IconMail size={14} /> Instant delivery</span>
+              <span><IconHeart size={14} /> Buddy plays it back</span>
             </div>
           </div>
           <div className={styles.featureVisual}>
             <div className={styles.voiceCard}>
-              <div className={styles.voiceAvatar}>👩‍👧</div>
+              <div className={styles.voiceAvatar}><IconHeart size={22} filled /></div>
               <div className={styles.voiceInfo}>
                 <span className={styles.voiceName}>Message from Mum</span>
                 <Waveform />
               </div>
-              <div className={styles.playBtn}>▶</div>
+              <div className={styles.playBtn}><IconPlay size={16} /></div>
             </div>
           </div>
         </RevealSection>
@@ -322,10 +345,10 @@ export default function LandingPage() {
             <ChatDemo />
           </div>
           <div className={styles.featureChips}>
-            <span>📖 Stories</span>
-            <span>🎮 Games</span>
-            <span>🎵 Sing-along</span>
-            <span>🧠 Quiz</span>
+            <span><IconBook size={14} /> Stories</span>
+            <span><IconSparkle size={14} /> Games</span>
+            <span><IconMusic size={14} /> Sing-along</span>
+            <span><IconShield size={14} /> Quiz</span>
           </div>
         </RevealSection>
 
@@ -340,9 +363,9 @@ export default function LandingPage() {
               with no screens or worksheets required.
             </p>
             <div className={styles.featureChips}>
-              <span>🌱 Gardening</span>
-              <span>🤖 Robotics</span>
-              <span>🔬 Science</span>
+              <span>Gardening</span>
+              <span>Robotics</span>
+              <span>Science</span>
               <span>More coming</span>
             </div>
           </div>
@@ -351,9 +374,9 @@ export default function LandingPage() {
                 body) so this preview matches what the product actually looks like. */}
             <div className={styles.courseCards}>
               {[
-                { emoji: '🌱', title: 'Gardening for Kids', color: ['#3ddc97', '#16a34a'] },
-                { emoji: '🤖', title: 'Robotics Basics', color: ['#4dadf7', '#2563eb'] },
-                { emoji: '🔬', title: 'Science Experiments', color: ['#ff9a3c', '#ec4899'] },
+                { id: 'gardening', title: 'Gardening for Kids', color: ['#3ddc97', '#16a34a'] },
+                { id: 'robotics', title: 'Robotics Basics', color: ['#4dadf7', '#2563eb'] },
+                { id: 'science', title: 'Science Experiments', color: ['#ff9a3c', '#ec4899'] },
               ].map((c, i) => (
                 <div
                   key={i}
@@ -364,7 +387,14 @@ export default function LandingPage() {
                     className={styles.courseCardHeader}
                     style={{ background: `linear-gradient(135deg, ${c.color[0]}, ${c.color[1]})` }}
                   >
-                    <span className={styles.courseEmoji}>{c.emoji}</span>
+                    <img
+                      className={styles.courseCardCover}
+                      src={`/courses/${c.id}.webp`}
+                      alt=""
+                      loading="lazy"
+                      width="960"
+                      height="549"
+                    />
                   </div>
                   <div className={styles.courseCardBody}>
                     <span className={styles.courseTitle}>{c.title}</span>
@@ -393,13 +423,13 @@ export default function LandingPage() {
             </div>
             <p className={styles.planDesc}>Great for getting started</p>
             <ul className={styles.planFeatures}>
-              <li className={styles.yes}>✓ Chat with Buddy (10/day)</li>
-              <li className={styles.yes}>✓ Story mode</li>
-              <li className={styles.yes}>✓ Sing mode</li>
-              <li className={styles.no}>✗ Live camera</li>
-              <li className={styles.no}>✗ Parent voice messages</li>
-              <li className={styles.no}>✗ All activity modes</li>
-              <li className={styles.no}>✗ Courses</li>
+              <li className={styles.yes}><IconCheck size={14} /> Chat with Buddy (10/day)</li>
+              <li className={styles.yes}><IconCheck size={14} /> Story mode</li>
+              <li className={styles.yes}><IconCheck size={14} /> Sing mode</li>
+              <li className={styles.no}><IconX size={14} /> Live camera</li>
+              <li className={styles.no}><IconX size={14} /> Parent voice messages</li>
+              <li className={styles.no}><IconX size={14} /> All activity modes</li>
+              <li className={styles.no}><IconX size={14} /> Courses</li>
             </ul>
             <button className={styles.planBtn} onClick={() => navigate('/login')}>
               Continue Free
@@ -420,19 +450,19 @@ export default function LandingPage() {
               R149/month. Cancel anytime before day 10 and you won't be charged.
             </p>
             <ul className={styles.planFeatures}>
-              <li className={styles.yes}>✓ Unlimited daily messages</li>
-              <li className={styles.yes}>✓ All 10 activity modes</li>
-              <li className={styles.yes}>✓ Peace of mind camera</li>
-              <li className={styles.yes}>✓ Parent voice messages</li>
-              <li className={styles.yes}>✓ Gardening, Robotics & Science courses</li>
-              <li className={styles.yes}>✓ Wake word &amp; avatar customisation</li>
-              <li className={styles.yes}>✓ Priority support</li>
+              <li className={styles.yes}><IconCheck size={14} /> Unlimited daily messages</li>
+              <li className={styles.yes}><IconCheck size={14} /> All 10 activity modes</li>
+              <li className={styles.yes}><IconCheck size={14} /> Peace of mind camera</li>
+              <li className={styles.yes}><IconCheck size={14} /> Parent voice messages</li>
+              <li className={styles.yes}><IconCheck size={14} /> Gardening, Robotics & Science courses</li>
+              <li className={styles.yes}><IconCheck size={14} /> Wake word &amp; avatar customisation</li>
+              <li className={styles.yes}><IconCheck size={14} /> Priority support</li>
             </ul>
             <button
               className={`${styles.planBtn} ${styles.planBtnPro}`}
               onClick={() => navigate('/login')}
             >
-              Start Free Trial →
+              Start Free Trial
             </button>
           </div>
         </RevealSection>
@@ -463,7 +493,7 @@ export default function LandingPage() {
           shouldn't require scrolling back to the top. */}
       <div className={`${styles.stickyCta} ${pastHero ? styles.stickyCtaVisible : ''}`}>
         <button className={styles.stickyCtaBtn} onClick={() => navigate('/login')}>
-          Start Free Trial →
+          Start Free Trial
         </button>
       </div>
     </div>

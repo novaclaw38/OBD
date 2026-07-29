@@ -43,17 +43,16 @@
   line-height: 1.4;
 }
 
-/* Visual size stays 22px; the invisible ::before pads the tap area to 44px
-   (WCAG/Material minimum) without disturbing the layout around it. */
+/* Visible 32px chip; the invisible ::before pads the tap area to ~56px —
+   children need larger targets than the adult 44px WCAG minimum. */
 .dismiss {
   position: relative;
-  font-size: 0.75rem;
   color: var(--ink-dim);
   background: rgba(0,0,0,0.06);
   border: none;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,5 +63,5 @@
 .dismiss::before {
   content: '';
   position: absolute;
-  inset: -11px;
+  inset: -12px;
 }

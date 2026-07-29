@@ -57,6 +57,11 @@
   background: #f3edff;
 }
 
-.item span {
-  font-size: 1.1rem;
+.itemIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(124, 58, 237, 0.08);
 }

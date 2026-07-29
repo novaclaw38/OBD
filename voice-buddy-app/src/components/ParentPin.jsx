@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { hashPin, getPinLock, savePinLock } from '../utils/storage.js'
 import styles from './ParentPin.module.css'
+import { IconLock } from './icons.jsx'
 
 const MAX_ATTEMPTS = 5
 const LOCKOUT_MS = 30000
@@ -62,7 +63,7 @@ export default function ParentPin({ correctPinHash, onSuccess }) {
   return (
     <div className={styles.overlay}>
       <div className={`${styles.card} ${shake ? styles.shake : ''}`}>
-        <div className={styles.lock}>🔒</div>
+        <div className={styles.lock}><IconLock size={30} /></div>
         <h2 className={styles.title}>Parent Area</h2>
         <p className={styles.sub}>
           {locked

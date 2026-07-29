@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import styles from './UpgradePrompt.module.css'
+import { IconX, IconStar, IconCheck } from './icons.jsx'
 
 export default function UpgradePrompt({ onClose, session }) {
   const [loading, setLoading] = useState(false)
@@ -32,19 +33,23 @@ export default function UpgradePrompt({ onClose, session }) {
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.card} onClick={e => e.stopPropagation()}>
         <div className={styles.glow} />
-        <button className={styles.close} onClick={onClose} aria-label="Close">✕</button>
+        <button className={styles.close} onClick={onClose} aria-label="Close"><IconX size={18} /></button>
 
-        <div className={styles.icon}>⭐</div>
+        <div className={styles.icon}><IconStar size={34} /></div>
         <h2 className={styles.title}>Unlock Buddy Pro</h2>
         <p className={styles.sub}>This feature is part of Buddy Pro</p>
 
         <ul className={styles.perks}>
-          <li>✅ All 10 activity modes</li>
-          <li>✅ Peace of mind camera</li>
-          <li>✅ Parent voice messages</li>
-          <li>✅ Gardening &amp; Robotics courses</li>
-          <li>✅ Wake word &amp; avatar customisation</li>
-          <li>✅ Unlimited daily messages</li>
+          {[
+            'All 10 activity modes',
+            'Peace of mind camera',
+            'Parent voice messages',
+            'Gardening & Robotics courses',
+            'Wake word & avatar customisation',
+            'Unlimited daily messages',
+          ].map((perk) => (
+            <li key={perk}><span className={styles.perkCheck}><IconCheck size={15} /></span>{perk}</li>
+          ))}
         </ul>
 
         <div className={styles.price}>

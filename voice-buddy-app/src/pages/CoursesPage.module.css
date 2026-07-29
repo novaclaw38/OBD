@@ -25,6 +25,10 @@
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
   background: #fff;
   color: var(--c-grape);
   font-size: 14px;
@@ -117,6 +121,15 @@
   display: block;
 }
 
+.courseCover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .courseEmoji {
   font-size: 60px;
   filter: drop-shadow(0 6px 14px rgba(0,0,0,0.25));
@@ -125,6 +138,9 @@
 
 /* Matches the "Pro" chip on ChildPage's courses button (.coursesPro) */
 .lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   position: absolute;
   top: 12px;
   right: 12px;
@@ -225,11 +241,17 @@
 }
 
 .lessonCheck {
-  font-size: 0.9rem;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--c-mint);
   flex-shrink: 0;
 }
 
 .lessonArrow {
-  font-size: 14px;
+  display: inline-flex;
   color: var(--ink-dim);
 }

@@ -6,9 +6,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(160deg, #ff8fc7 0%, #b794f6 100%);
+  /* Deep enough that white lyrics pass 4.5:1 — the old #ff8fc7 top measured 2.65:1 */
+  background: linear-gradient(160deg, #c2417f 0%, #6d3fc0 100%);
   padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
   overflow: hidden;
+}
+
+/* Motion-animated screen container — replicates the overlay's column layout
+   one level down so pick/credits/sing keep their original geometry. */
+.screenWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Top bar ─────────────────────────────────────── */
@@ -22,17 +34,24 @@
 }
 
 .backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: rgba(255,255,255,0.85);
   color: #5b21b6;
   font-weight: 700;
   font-size: 0.9rem;
-  padding: 8px 16px;
+  padding: 10px 16px;
+  min-height: 44px;
   border-radius: 99px;
   box-shadow: 0 3px 0 rgba(91,33,182,0.18);
 }
 .backBtn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(91,33,182,0.18); }
 
 .topTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--font-head);
   font-size: 1.15rem;
   font-weight: 800;
@@ -199,8 +218,16 @@
 }
 
 .doneLine {
-  color: rgba(255,255,255,0.55);
+  color: rgba(255,255,255,0.72);
   font-size: 1.1rem;
+}
+
+/* Buddy singing along above the lyrics */
+.singBuddy {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
 }
 
 .activeLine {
@@ -280,6 +307,10 @@
 
 .replayBtn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   padding: 14px;
   background: rgba(255,255,255,0.85);
   color: #5b21b6;
@@ -295,6 +326,10 @@
 
 .nextBtn {
   flex: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   padding: 14px;
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
   color: white;

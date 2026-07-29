@@ -4,6 +4,7 @@ import { addHistory, fetchHistory } from '../services/historyService.js'
 import { PROMPTS, MODE_INTROS, pickRandom } from '../utils/prompts.js'
 import { timeContextLine } from '../utils/timeOfDay.js'
 import { supabase } from '../lib/supabase.js'
+import { getActiveChildId } from '../utils/storage.js'
 
 const MAX_HISTORY = 16
 
@@ -31,10 +32,13 @@ export function useChat(settings) {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase
+      const childId = getActiveChildId()
+      let query = supabase
         .from('lesson_completions')
         .select('course_id, lesson_id')
         .eq('user_id', user.id)
+      query = childId ? query.or(`child_id.eq.${childId},child_id.is.null`) : query
+      query
         .order('completed_at', { ascending: false })
         .limit(5)
         .then(({ data }) => {

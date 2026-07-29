@@ -13,6 +13,7 @@ import LabelCard from '../components/lesson/LabelCard.jsx'
 import ActivityCard from '../components/lesson/ActivityCard.jsx'
 import RewardScreen from '../components/lesson/RewardScreen.jsx'
 import styles from './LessonPage.module.css'
+import { IconArrowLeft, IconArrowRight, IconPrinter, IconStar, IconSparkle } from '../components/icons.jsx'
 
 // Quiz options and label items are authored as "emoji Text" — strip the
 // emoji off so it reads naturally aloud instead of literally saying "emoji".
@@ -121,6 +122,7 @@ export default function LessonPage() {
         childName={settings.childName}
         avatarType={settings.avatarType}
         avatarColor={settings.avatarColor}
+        costume={settings.costume}
         onBack={() => navigate('/courses')}
       />
     )
@@ -133,7 +135,7 @@ export default function LessonPage() {
     <div className={styles.page}>
       {/* Header */}
       <div className={styles.header}>
-        <button className={styles.back} onClick={handleBack}>← Back</button>
+        <button className={styles.back} onClick={handleBack}><IconArrowLeft size={17} /> Back</button>
         <span className={styles.lessonTitle}>{lesson.emoji} {lesson.title}</span>
         <div className={styles.headerRight}>
           <div className={styles.dots}>
@@ -142,10 +144,10 @@ export default function LessonPage() {
                 key={i}
                 aria-hidden="true"
                 className={`${styles.dot} ${i === stepIndex ? styles.dotActive : ''} ${i < stepIndex ? styles.dotDone : ''}`}
-              >★</span>
+              ><IconStar size={13} /></span>
             ))}
           </div>
-          <button className={styles.printBtn} onClick={handlePrintSheet} title="Print worksheet">🖨️</button>
+          <button className={styles.printBtn} onClick={handlePrintSheet} aria-label="Print worksheet" title="Print worksheet"><IconPrinter size={19} /></button>
         </div>
       </div>
 
@@ -155,6 +157,7 @@ export default function LessonPage() {
           status={uiStatus}
           avatarColor={settings.avatarColor}
           type={settings.avatarType || 'bear'}
+          costume={settings.costume}
           audioRef={speech.audioRef}
         />
       </div>
@@ -199,7 +202,9 @@ export default function LessonPage() {
           disabled={!stepComplete}
           onClick={handleNext}
         >
-          {stepIndex === steps.length - 1 ? '🌟 Finish!' : 'Next →'}
+          {stepIndex === steps.length - 1
+            ? <><IconSparkle size={18} /> Finish!</>
+            : <>Next <IconArrowRight size={18} /></>}
         </button>
       </div>
     </div>

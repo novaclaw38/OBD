@@ -1,13 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NURSERY_RHYMES } from '../utils/nurseryRhymes.js'
 import styles from './SingAlong.module.css'
+import { IconArrowLeft, IconMusic, IconPlay, IconPause, IconRepeat } from './icons.jsx'
+import BuddyAvatar from './BuddyAvatar.jsx'
+import { motion, AnimatePresence } from 'motion/react'
+
+// Spring used for screen swaps (pick <-> sing <-> credits). AnimatePresence
+// gives us real exit animations, which CSS alone can't do on unmount.
+const SCREEN_SPRING = { type: 'spring', stiffness: 340, damping: 32 }
+const screenMotion = {
+  initial: { opacity: 0, x: 42, scale: 0.985 },
+  animate: { opacity: 1, x: 0, scale: 1 },
+  exit:    { opacity: 0, x: -42, scale: 0.985 },
+  transition: SCREEN_SPRING,
+}
 
 // Sing-along plays a REAL sung recording per song. Recordings have no
 // per-word timestamps, so the karaoke highlight is driven by elapsed
 // playback time within the song's [leadIn, outro] window (see
 // nurseryRhymes.js), distributed across words by character length (longer
 // words get proportionally more time) for a natural-feeling bounce.
-export default function SingAlong({ onExit }) {
+export default function SingAlong({ onExit, avatarColor, avatarType = 'bear', costume }) {
   const [screen, setScreen] = useState('pick') // 'pick' | 'sing' | 'credits'
   const [song, setSong] = useState(null)
   const [globalWord, setGlobalWord] = useState(-1) // index across the whole song
@@ -115,12 +128,13 @@ export default function SingAlong({ onExit }) {
   }
 
   /* ── Song Picker ──────────────────────────────── */
+  let content = null
   if (screen === 'pick') {
-    return (
-      <div className={styles.overlay}>
+    content = (
+      <motion.div key="pick" className={styles.screenWrap} {...screenMotion}>
         <div className={styles.topBar}>
-          <button className={styles.backBtn} onClick={onExit}>← Back</button>
-          <span className={styles.topTitle}>🎵 Sing Along!</span>
+          <button className={styles.backBtn} onClick={onExit}><IconArrowLeft size={17} /> Back</button>
+          <span className={styles.topTitle}><IconMusic size={19} /> Sing Along!</span>
           <div style={{ width: 70 }} />
         </div>
 
@@ -136,7 +150,7 @@ export default function SingAlong({ onExit }) {
             >
               <span className={styles.songEmoji}>{r.emoji}</span>
               <span className={styles.songName}>{r.title}</span>
-              <span className={styles.songPlayIcon} aria-hidden="true">▶</span>
+              <span className={styles.songPlayIcon} aria-hidden="true"><IconPlay size={17} /></span>
             </button>
           ))}
         </div>
@@ -144,16 +158,16 @@ export default function SingAlong({ onExit }) {
         <button className={styles.creditsLink} onClick={() => setScreen('credits')}>
           Song credits
         </button>
-      </div>
+      </motion.div>
     )
   }
 
   /* ── Credits (licence attribution) ────────────── */
   if (screen === 'credits') {
-    return (
-      <div className={styles.overlay}>
+    content = (
+      <motion.div key="credits" className={styles.screenWrap} {...screenMotion}>
         <div className={styles.topBar}>
-          <button className={styles.backBtn} onClick={() => setScreen('pick')}>← Back</button>
+          <button className={styles.backBtn} onClick={() => setScreen('pick')}><IconArrowLeft size={17} /> Back</button>
           <span className={styles.topTitle}>Song credits</span>
           <div style={{ width: 70 }} />
         </div>
@@ -174,23 +188,36 @@ export default function SingAlong({ onExit }) {
             </a>
           ))}
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   /* ── Sing Screen ──────────────────────────────── */
-  // Resolve global word index → which line, and which word within it.
-  const map = buildWordMap(song)
-  const active = globalWord >= 0 && globalWord < map.length ? map[globalWord] : null
-  const activeLine = active ? active.line : -1
-  const activeWord = active ? active.word : -1
+  if (screen === 'sing' && song) {
+    // Resolve global word index → which line, and which word within it.
+    const map = buildWordMap(song)
+    const active = globalWord >= 0 && globalWord < map.length ? map[globalWord] : null
+    const activeLine = active ? active.line : -1
+    const activeWord = active ? active.word : -1
 
-  return (
-    <div className={styles.overlay}>
+    content = (
+      <motion.div key="sing" className={styles.screenWrap} {...screenMotion}>
       <div className={styles.topBar}>
-        <button className={styles.backBtn} onClick={handleBackToPick}>🎵 Songs</button>
+        <button className={styles.backBtn} onClick={handleBackToPick}><IconMusic size={17} /> Songs</button>
         <span className={styles.topTitle}>{song.emoji} {song.title}</span>
         <div style={{ width: 70 }} />
+      </div>
+
+      {/* Buddy sings along — mouth synced to the recording's loudness */}
+      <div className={styles.singBuddy}>
+        <BuddyAvatar
+          status={ended ? 'happy' : isPlaying ? 'speaking' : 'idle'}
+          avatarColor={avatarColor}
+          type={avatarType}
+          costume={costume}
+          size={104}
+          audioRef={audioRef}
+        />
       </div>
 
       <div className={styles.lyricsBlock}>
@@ -217,7 +244,7 @@ export default function SingAlong({ onExit }) {
       </div>
 
       <p className={styles.statusLine}>
-        {ended ? '🎉 Great singing!' : isPlaying ? '🎵 Sing along!' : '⏸ Paused — tap play'}
+        {ended ? 'Great singing!' : isPlaying ? 'Sing along!' : 'Paused — tap play'}
       </p>
 
       <div className={styles.controls}>
@@ -226,16 +253,25 @@ export default function SingAlong({ onExit }) {
           onClick={handleRestart}
           aria-label="Start the song again"
         >
-          🔁 Again
+          <IconRepeat size={17} /> Again
         </button>
         <button
           className={styles.nextBtn}
           onClick={handlePlayPause}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          {ended ? '🔁 Sing again' : isPlaying ? '⏸ Pause' : '▶ Play'}
+          {ended ? <><IconRepeat size={17} /> Sing again</> : isPlaying ? <><IconPause size={17} /> Pause</> : <><IconPlay size={17} /> Play</>}
         </button>
       </div>
+      </motion.div>
+    )
+  }
+
+  return (
+    <div className={styles.overlay}>
+      <AnimatePresence mode="wait" initial={false}>
+        {content}
+      </AnimatePresence>
     </div>
   )
 }

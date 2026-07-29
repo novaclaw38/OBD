@@ -118,6 +118,73 @@
   transform: scale(1.05);
 }
 
+.costumeLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 14px 0 8px;
+}
+
+.costumeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.costumeBtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px 6px;
+  border-radius: var(--r-sm);
+  background: #f7f4fd;
+  transition: transform 0.15s var(--spring), background 0.15s;
+}
+
+.costumeBtn:active { transform: scale(0.93); }
+
+.costumeBtn .avatarLabel {
+  font-size: 0.68rem;
+}
+
+.lockedCostume { opacity: 0.6; }
+
+.costumeLock {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+}
+
+.costumeClear {
+  grid-column: span 4;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+}
+
 .avatarLabel {
   font-size: 0.8rem;
   font-weight: 800;

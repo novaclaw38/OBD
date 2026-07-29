@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import styles from './BuddyMenu.module.css'
+import { IconMenu, IconMusic, IconBook, IconPalette, IconGear } from './icons.jsx'
 
 // Single overflow menu replacing the old scattered top-bar buttons (customise,
 // settings) and mode tiles (songs, learn) — one predictable place for the
@@ -31,21 +32,21 @@ export default function BuddyMenu({ onSongs, onLearn, onCustomize, onSettings, v
         aria-expanded={open}
         aria-label="Menu"
       >
-        ☰
+        <IconMenu size={22} />
       </button>
       {open && (
         <div className={styles.menu} role="menu">
           <button className={styles.item} role="menuitem" onClick={pick(onSongs)}>
-            <span aria-hidden="true">🎵</span> Songs
+            <span className={styles.itemIcon} style={{ color: 'var(--c-pink-d)' }}><IconMusic /></span> Songs
           </button>
           <button className={styles.item} role="menuitem" onClick={pick(onLearn)}>
-            <span aria-hidden="true">📚</span> Learn
+            <span className={styles.itemIcon} style={{ color: 'var(--c-sky)' }}><IconBook /></span> Learn
           </button>
           <button className={styles.item} role="menuitem" onClick={pick(onCustomize)}>
-            <span aria-hidden="true">🎨</span> Customise Buddy
+            <span className={styles.itemIcon} style={{ color: 'var(--c-tangerine)' }}><IconPalette /></span> Customise Buddy
           </button>
           <button className={styles.item} role="menuitem" onClick={pick(onSettings)}>
-            <span aria-hidden="true">⚙️</span> Parent Settings
+            <span className={styles.itemIcon} style={{ color: 'var(--c-grape)' }}><IconGear /></span> Parent Settings
           </button>
         </div>
       )}

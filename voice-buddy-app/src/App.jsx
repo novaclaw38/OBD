@@ -58,6 +58,7 @@ export default function App() {
           <Route path="/dev-child" element={<ChildPage session={{ user: { id: 'dev-preview' } }} />} />
           <Route path="/dev-courses" element={<CoursesPage session={{ user: { id: 'dev-preview' } }} />} />
           <Route path="/dev-parent" element={<ParentPage session={{ user: { id: 'dev-preview' } }} />} />
+          <Route path="/dev-lesson" element={<LessonPage session={{ user: { id: 'dev-preview' } }} />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to={session ? '/app' : '/'} replace />} />

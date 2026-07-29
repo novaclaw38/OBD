@@ -65,9 +65,16 @@
 }
 
 .icon {
-  font-size: 52px;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
   position: relative;
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: #b45309;
+  background: linear-gradient(150deg, #ffe9a8, #ffd23f);
+  box-shadow: 0 6px 0 rgba(180, 120, 0, 0.18), 0 12px 24px rgba(255, 190, 40, 0.35);
   animation: float-soft 3.5s ease-in-out infinite;
 }
 
@@ -102,6 +109,20 @@
   background: #f7f4fd;
   padding: 10px 16px;
   border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.perkCheck {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: #fff;
+  background: var(--c-mint);
 }
 
 .price {

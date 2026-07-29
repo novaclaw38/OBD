@@ -3,6 +3,7 @@ import styles from './BuddyAvatar.module.css'
 import { useMouthLevel } from '../hooks/useMouthLevel.js'
 import { useBuddyLife } from '../hooks/useBuddyLife.js'
 import { Costume } from './BuddyCostumes.jsx'
+import { CostumeOverlay } from './BuddyCostumeOverlays.jsx'
 
 const STATE_COLORS = {
   idle:      { face: '#7c3aed', glow: '#a855f7' },
@@ -21,6 +22,7 @@ export default function BuddyAvatar({
   status = 'idle',
   avatarColor,
   type = 'bear',
+  costume = null,
   size = 170,
   audioRef,
   live = true,
@@ -163,6 +165,9 @@ export default function BuddyAvatar({
               <circle className={styles.thinkDot3} cx="62" cy="90" r="3.2" fill="rgba(255,255,255,0.75)" />
             </g>
           )}
+
+          {/* Premium costume (Pro) — drawn last so it sits on top of everything */}
+          <CostumeOverlay costumeId={costume} />
         </g>
       </svg>
     </div>

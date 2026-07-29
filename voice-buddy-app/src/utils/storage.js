@@ -1,6 +1,25 @@
 const KEYS = {
-  SETTINGS: 'buddy_settings',
+  SETTINGS: 'buddy_settings', // legacy flat key — pre-multi-child, read as a fallback
   PIN_LOCK: 'buddy_pin_lock',
+  ACTIVE_CHILD: 'buddy_active_child',
+}
+
+const settingsKeyFor = (childId) => `buddy_settings::${childId}`
+
+// Multi-child: which child this device is currently "on". null before the
+// one-time migration in childrenService.ensureActiveChildMigrated() runs,
+// in which case getSettings()/saveSettings() fall back to the old flat key
+// so nothing breaks for code that runs before migration completes.
+export function getActiveChildId() {
+  try {
+    return localStorage.getItem(KEYS.ACTIVE_CHILD) || null
+  } catch {
+    return null
+  }
+}
+
+export function setActiveChildId(id) {
+  localStorage.setItem(KEYS.ACTIVE_CHILD, id)
 }
 
 const DEFAULTS = {
@@ -15,6 +34,8 @@ const DEFAULTS = {
   voiceOnly: false,
   autoListen: false,
   avatarColor: '#7c3aed',
+  costume: null, // Pro only — see BuddyCostumeOverlays.jsx for ids
+  dailyLimitMinutes: null, // Pro only — null/0 = off; see utils/screenTime.js
   morningRoutine: [
     'Wake up and stretch!',
     'Brush your teeth',
@@ -35,7 +56,8 @@ const DEFAULTS = {
 
 export function getSettings() {
   try {
-    const raw = localStorage.getItem(KEYS.SETTINGS)
+    const childId = getActiveChildId()
+    const raw = localStorage.getItem(childId ? settingsKeyFor(childId) : KEYS.SETTINGS)
     return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS }
   } catch {
     return { ...DEFAULTS }
@@ -43,7 +65,33 @@ export function getSettings() {
 }
 
 export function saveSettings(settings) {
-  localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings))
+  const childId = getActiveChildId()
+  localStorage.setItem(childId ? settingsKeyFor(childId) : KEYS.SETTINGS, JSON.stringify(settings))
+}
+
+// Raw read/write against a specific child's namespaced settings, regardless
+// of which child is currently active — used by the one-time migration and
+// by the Parent dashboard when seeding a brand-new child.
+export function getSettingsFor(childId) {
+  try {
+    const raw = localStorage.getItem(settingsKeyFor(childId))
+    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS }
+  } catch {
+    return { ...DEFAULTS }
+  }
+}
+
+export function saveSettingsFor(childId, settings) {
+  localStorage.setItem(settingsKeyFor(childId), JSON.stringify(settings))
+}
+
+export function getLegacySettingsRaw() {
+  try {
+    const raw = localStorage.getItem(KEYS.SETTINGS)
+    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : null
+  } catch {
+    return null
+  }
 }
 
 export async function hashPin(pin) {

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import BuddyAvatar from '../BuddyAvatar.jsx'
 import styles from './RewardScreen.module.css'
+import { IconStar, IconPrinter, IconTrophy, IconArrowLeft } from '../icons.jsx'
 
 const STAR_COUNT = 12
 
-export default function RewardScreen({ lesson, course, childName, avatarType, avatarColor, onBack }) {
+export default function RewardScreen({ lesson, course, childName, avatarType, avatarColor, costume, onBack }) {
   const [printTarget, setPrintTarget] = useState(null)
 
   const handlePrint = (target) => {
@@ -25,29 +26,29 @@ export default function RewardScreen({ lesson, course, childName, avatarType, av
         {/* Star burst */}
         <div className={styles.starsWrap} aria-hidden="true">
           {Array.from({ length: STAR_COUNT }).map((_, i) => (
-            <span key={i} className={styles.star} style={{ '--i': i }}>⭐</span>
+            <span key={i} className={styles.star} style={{ '--i': i }}><IconStar size={26} /></span>
           ))}
         </div>
 
         {/* Result card */}
         <div className={styles.content}>
           <div className={styles.buddyWrap}>
-            <BuddyAvatar type={avatarType || 'bear'} status="happy" avatarColor={avatarColor} size={130} />
+            <BuddyAvatar type={avatarType || 'bear'} costume={costume} status="happy" avatarColor={avatarColor} size={130} />
           </div>
-          <h1 className={styles.heading}>You did it! 🌟</h1>
+          <h1 className={styles.heading}>You did it!</h1>
           <p className={styles.sub}>
             You finished <strong>{lesson.title}</strong>!
           </p>
 
           <div className={styles.actions}>
             <button className={styles.sheetBtn} onClick={() => handlePrint('sheet')}>
-              🖨️ Print your worksheet
+              <IconPrinter size={18} /> Print your worksheet
             </button>
             <button className={styles.certBtn} onClick={() => handlePrint('cert')}>
-              🏆 Print your certificate
+              <IconTrophy size={18} /> Print your certificate
             </button>
             <button className={styles.backBtn} onClick={onBack}>
-              ← Back to Courses
+              <IconArrowLeft size={18} /> Back to Courses
             </button>
           </div>
         </div>

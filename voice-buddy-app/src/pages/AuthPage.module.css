@@ -12,9 +12,13 @@
   position: absolute;
   top: 20px;
   left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
   background: #fff;
   border-radius: var(--r-pill);
-  padding: 8px 16px;
+  padding: 10px 16px;
   border: none;
   color: var(--c-grape);
   font-weight: 700;
@@ -166,4 +170,37 @@
   color: var(--c-grape);
   font-weight: 800;
   font-size: 0.9rem;
+}
+
+/* Password field with show/hide toggle */
+.passwordWrap {
+  position: relative;
+}
+
+.passwordWrap .input {
+  padding-right: 52px;
+}
+
+.eyeToggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+  border-radius: 50%;
+}
+
+.eyeToggle:active { transform: translateY(-50%) scale(0.9); }
+
+.bearHide {
+  animation: bearShy 0.3s var(--spring) both;
+}
+
+@keyframes bearShy {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

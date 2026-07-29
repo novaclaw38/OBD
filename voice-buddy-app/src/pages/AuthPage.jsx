@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import styles from './AuthPage.module.css'
+import { IconArrowLeft, IconEye, IconEyeOff } from '../components/icons.jsx'
 
 export default function AuthPage() {
   const navigate = useNavigate()
@@ -9,6 +10,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -39,11 +42,14 @@ export default function AuthPage() {
   return (
     <div className={styles.page}>
       <button className={styles.home} onClick={() => navigate('/')}>
-        ← Home
+        <IconArrowLeft size={16} /> Home
       </button>
       <div className={styles.card}>
         {/* Bear logo */}
         <div className={styles.logo}>
+          {(() => {
+            const hiding = passwordFocused && !showPassword
+            return (
           <svg viewBox="0 0 100 100" className={styles.bear}>
             <circle cx="22" cy="24" r="18" fill="#7c3aed" />
             <circle cx="78" cy="24" r="18" fill="#7c3aed" />
@@ -51,17 +57,33 @@ export default function AuthPage() {
             <circle cx="78" cy="24" r="11" fill="rgba(255,190,190,0.45)" />
             <circle cx="50" cy="58" r="39" fill="#7c3aed" />
             <ellipse cx="50" cy="71" rx="17" ry="12" fill="rgba(255,255,255,0.18)" />
-            <circle cx="35" cy="50" r="9" fill="white" />
-            <circle cx="37" cy="50" r="5" fill="#1e1b4b" />
-            <circle cx="38" cy="48" r="2" fill="white" />
-            <circle cx="65" cy="50" r="9" fill="white" />
-            <circle cx="63" cy="50" r="5" fill="#1e1b4b" />
-            <circle cx="64" cy="48" r="2" fill="white" />
+            {hiding ? (
+              /* Eyes squeezed shut + paws over them — Buddy isn't peeking */
+              <g className={styles.bearHide}>
+                <path d="M 28 50 Q 35 55 42 50" stroke="#1e1b4b" strokeWidth="3" fill="none" strokeLinecap="round" />
+                <path d="M 58 50 Q 65 55 72 50" stroke="#1e1b4b" strokeWidth="3" fill="none" strokeLinecap="round" />
+                <circle cx="33" cy="52" r="10.5" fill="#6d31d9" />
+                <circle cx="67" cy="52" r="10.5" fill="#6d31d9" />
+                <circle cx="33" cy="52" r="6.5" fill="rgba(255,190,190,0.4)" />
+                <circle cx="67" cy="52" r="6.5" fill="rgba(255,190,190,0.4)" />
+              </g>
+            ) : (
+              <g>
+                <circle cx="35" cy="50" r="9" fill="white" />
+                <circle cx="37" cy="50" r="5" fill="#1e1b4b" />
+                <circle cx="38" cy="48" r="2" fill="white" />
+                <circle cx="65" cy="50" r="9" fill="white" />
+                <circle cx="63" cy="50" r="5" fill="#1e1b4b" />
+                <circle cx="64" cy="48" r="2" fill="white" />
+              </g>
+            )}
             <ellipse cx="50" cy="63" rx="5.5" ry="4" fill="rgba(0,0,0,0.35)" />
             <path d="M 38 72 Q 50 81 62 72" stroke="rgba(255,255,255,0.7)" strokeWidth="3" fill="none" strokeLinecap="round" />
             <circle cx="24" cy="65" r="9" fill="rgba(255,140,140,0.22)" />
             <circle cx="76" cy="65" r="9" fill="rgba(255,140,140,0.22)" />
           </svg>
+            )
+          })()}
         </div>
 
         <h1 className={styles.title}>Buddy</h1>
@@ -94,17 +116,29 @@ export default function AuthPage() {
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="auth-password">Password</label>
-            <input
-              id="auth-password"
-              className={styles.input}
-              type="password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-            />
+            <div className={styles.passwordWrap}>
+              <input
+                id="auth-password"
+                className={styles.input}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                required
+                minLength={6}
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              />
+              <button
+                type="button"
+                className={styles.eyeToggle}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <IconEyeOff size={19} /> : <IconEye size={19} />}
+              </button>
+            </div>
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
