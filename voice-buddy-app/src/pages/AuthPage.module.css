@@ -179,7 +179,13 @@
   background: #ece4fb;
 }
 
-.facebookBtn {
+.oauthButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oauthBtn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -195,8 +201,8 @@
   font-size: 0.98rem;
 }
 
-.facebookBtn:active:not(:disabled) { transform: scale(0.98); background: #faf9fd; }
-.facebookBtn:disabled { opacity: 0.6; }
+.oauthBtn:active:not(:disabled) { transform: scale(0.98); background: #faf9fd; }
+.oauthBtn:disabled { opacity: 0.6; }
 
 .hint {
   margin-top: 22px;
