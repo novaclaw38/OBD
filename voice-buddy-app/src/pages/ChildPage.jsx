@@ -93,6 +93,8 @@ export default function ChildPage({ session }) {
   const [minutesUsed, setMinutesUsed] = useState(() => getTodayMinutesUsed(getActiveChildId()))
   const [showWindDown, setShowWindDown] = useState(false)
   const [showWindDownPin, setShowWindDownPin] = useState(false)
+  const [showFreeLimit, setShowFreeLimit] = useState(false)
+  const [showFreeLimitPin, setShowFreeLimitPin] = useState(false)
   const warnedRef = useRef(false)
 
   useEffect(() => {
@@ -496,6 +498,13 @@ export default function ChildPage({ session }) {
     setBuddyText('')
 
     chat.sendMessage(transcript, chat.mode).then((reply) => {
+      if (chat.limitReachedRef.current) {
+        setUserText('')
+        setBuddyText('')
+        setUiStatus('idle')
+        setShowFreeLimit(true)
+        return
+      }
       setBuddyText(reply)
       setUiStatus('speaking')
       speech.speak(reply, () => {
@@ -541,6 +550,36 @@ export default function ChildPage({ session }) {
           <>
             <ParentPin correctPinHash={settings.parentPinHash} onSuccess={handleWindDownUnlock} />
             <button className={styles.pinDismiss} onClick={() => setShowWindDownPin(false)} aria-label="Cancel" />
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Free-tier daily chat limit reached — same calm, non-blocking pattern as
+  // the screen-time wind-down above, but the only real "unlock" here is
+  // upgrading, so a grown-up's PIN routes to the Parent Dashboard with the
+  // upgrade prompt already open instead of just granting more time.
+  if (showFreeLimit) {
+    return (
+      <div className={styles.windDownPage}>
+        <BuddyAvatar status="idle" avatarColor={settings.avatarColor} type={avatarType} costume={settings.costume} size={150} live={false} />
+        <h1 className={styles.windDownTitle}>Great chatting today, {childName}!</h1>
+        <p className={styles.windDownSub}>{buddyName} needs a little rest from today's free chats. Ask a grown-up to unlock unlimited chatting!</p>
+        <button className={styles.windDownUnlock} onClick={() => setShowFreeLimitPin(true)}>
+          Ask a grown-up
+        </button>
+        {showFreeLimitPin && (
+          <>
+            <ParentPin
+              correctPinHash={settings.parentPinHash}
+              onSuccess={() => {
+                setShowFreeLimit(false)
+                setShowFreeLimitPin(false)
+                navigate('/parent', { state: { openUpgrade: 'freeLimit' } })
+              }}
+            />
+            <button className={styles.pinDismiss} onClick={() => setShowFreeLimitPin(false)} aria-label="Cancel" />
           </>
         )}
       </div>

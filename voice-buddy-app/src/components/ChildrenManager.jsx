@@ -173,7 +173,7 @@ export default function ChildrenManager({ onSwitched, session }) {
         <p className={styles.proNote}>Free accounts get 1 child — upgrade to Pro to add siblings.</p>
       )}
 
-      {showUpgrade && <UpgradePrompt session={session} onClose={() => setShowUpgrade(false)} />}
+      {showUpgrade && <UpgradePrompt session={session} trigger="child" onClose={() => setShowUpgrade(false)} />}
     </div>
   )
 }

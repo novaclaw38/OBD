@@ -20,6 +20,43 @@
   flex-shrink: 0;
 }
 
+.trialBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  flex-shrink: 0;
+  background: rgba(124,58,237,0.1);
+  color: #6d28d9;
+  border-bottom: 1px solid rgba(124,58,237,0.15);
+}
+
+.trialBannerEnded {
+  background: rgba(219,39,119,0.1);
+  color: #be185d;
+  border-bottom-color: rgba(219,39,119,0.15);
+}
+
+.trialBannerBtn {
+  border: none;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #7c3aed;
+  cursor: pointer;
+}
+
+.trialBannerEnded .trialBannerBtn {
+  background: #db2777;
+}
+
 .backBtn {
   color: var(--c-grape);
   font-size: 0.95rem;

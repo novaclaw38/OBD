@@ -25,6 +25,8 @@ export async function chatCompletion(messages, options = {}) {
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
     if (response.status === 429) throw new Error('RATE_LIMIT')
+    if (err.error?.code === 'FREE_LIMIT_REACHED') throw new Error('FREE_LIMIT_REACHED')
+    if (err.error?.code === 'PRO_REQUIRED') throw new Error('PRO_REQUIRED')
     throw new Error(err.error?.message || `HTTP ${response.status}`)
   }
 

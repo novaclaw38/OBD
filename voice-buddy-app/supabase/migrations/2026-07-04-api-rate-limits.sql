@@ -3,6 +3,13 @@
 --
 -- One row per (user, endpoint, window-start). The RPC atomically increments
 -- and returns the new count; the API rejects when it exceeds the limit.
+--
+-- NOTE (2026-07-30): this migration existed in the repo but had never
+-- actually been applied to the production project — meaning bump_api_usage
+-- didn't exist and every allowRequest() call in api/_auth.js was failing
+-- open (RPC not found → caught → returns true), silently disabling the
+-- 20/min and 500/day rate limits and the new 10/day free-chat limit added
+-- alongside this note. Applied via Supabase MCP on 2026-07-30.
 
 create table if not exists public.api_usage (
   user_id      uuid        not null,

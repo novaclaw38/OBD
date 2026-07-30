@@ -3,8 +3,25 @@ import { supabase } from '../lib/supabase.js'
 import styles from './UpgradePrompt.module.css'
 import { IconX, IconStar, IconCheck } from './icons.jsx'
 
-export default function UpgradePrompt({ onClose, session }) {
+// Keyed by the feature that triggered the prompt, so the headline reflects
+// what the parent actually just tried to do instead of a one-size-fits-all
+// pitch. Falls back to the generic copy for any trigger not listed here.
+const TRIGGERS = {
+  camera:     { title: 'Unlock the Live Camera',         sub: 'Peace-of-mind camera check-ins are part of Buddy Pro' },
+  messages:   { title: 'Unlock Parent Voice Messages',   sub: 'Sending Buddy voice notes to your child is part of Buddy Pro' },
+  costume:    { title: 'Unlock Costumes',                sub: "Dressing up your child's Buddy is part of Buddy Pro" },
+  child:      { title: 'Unlock a Second Child Profile',  sub: 'Adding more than one child is part of Buddy Pro' },
+  courses:    { title: 'Unlock All Courses',             sub: 'Gardening, Robotics, Science & more are part of Buddy Pro' },
+  timeLimit:  { title: 'Unlock Daily Time Limits',       sub: 'Setting a screen-time limit is part of Buddy Pro' },
+  story:      { title: 'Unlock Bedtime Story Ideas',     sub: 'Sending Buddy a story idea is part of Buddy Pro' },
+  freeLimit:  { title: "You've Used Today's Free Chats", sub: 'Unlimited daily chatting is part of Buddy Pro' },
+  trialEnding:{ title: 'Your Trial Is Ending Soon',      sub: 'Add a payment method to keep everything in Buddy Pro' },
+  trialEnded: { title: 'Your Free Trial Has Ended',      sub: 'Subscribe to keep everything you’ve been using in Buddy Pro' },
+}
+
+export default function UpgradePrompt({ onClose, session, trigger }) {
   const [loading, setLoading] = useState(false)
+  const copy = TRIGGERS[trigger] || { title: 'Unlock Buddy Pro', sub: 'This feature is part of Buddy Pro' }
 
   const handleUpgrade = async () => {
     if (!session) return
@@ -36,8 +53,8 @@ export default function UpgradePrompt({ onClose, session }) {
         <button className={styles.close} onClick={onClose} aria-label="Close"><IconX size={18} /></button>
 
         <div className={styles.icon}><IconStar size={34} /></div>
-        <h2 className={styles.title}>Unlock Buddy Pro</h2>
-        <p className={styles.sub}>This feature is part of Buddy Pro</p>
+        <h2 className={styles.title}>{copy.title}</h2>
+        <p className={styles.sub}>{copy.sub}</p>
 
         <ul className={styles.perks}>
           {[

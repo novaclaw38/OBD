@@ -112,7 +112,7 @@ export default function AvatarPicker({ currentType, currentName, currentColor, c
         </button>
       </div>
 
-      {showUpgrade && <UpgradePrompt session={session} onClose={() => setShowUpgrade(false)} />}
+      {showUpgrade && <UpgradePrompt session={session} trigger="costume" onClose={() => setShowUpgrade(false)} />}
     </div>
   )
 }

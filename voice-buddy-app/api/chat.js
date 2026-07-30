@@ -5,6 +5,7 @@ const MAX_MESSAGE_CHARS = 4000
 const MAX_TOKENS_CAP = 800
 const RATE_LIMIT_PER_MIN = 20
 const RATE_LIMIT_PER_DAY = 500
+const FREE_CHAT_LIMIT_PER_DAY = 10 // matches the "Chat with Buddy (10/day)" free-plan claim on the pricing page
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -39,8 +40,18 @@ export default async function handler(req, res) {
   const clampedTemperature = Math.min(Math.max(0, Number(temperature) || 0.85), 2)
 
   // Enforce Pro gating server-side — the client cannot be trusted.
-  if (isProMode(mode) && !(await isEntitled(user.id))) {
-    return res.status(403).json({ error: { message: 'This mode is part of Buddy Pro.' } })
+  const entitled = await isEntitled(user.id)
+  if (isProMode(mode) && !entitled) {
+    return res.status(403).json({ error: { message: 'This mode is part of Buddy Pro.', code: 'PRO_REQUIRED' } })
+  }
+
+  // Free-tier daily message cap — the one thing that's supposed to make
+  // free chat/story/sing "10/day" rather than unlimited.
+  if (!entitled) {
+    const withinFreeLimit = await allowRequest(user.id, 'chat-free-1d', FREE_CHAT_LIMIT_PER_DAY, 86400)
+    if (!withinFreeLimit) {
+      return res.status(403).json({ error: { message: "You've used today's free chats with Buddy.", code: 'FREE_LIMIT_REACHED' } })
+    }
   }
 
   const key = process.env.GROQ_API_KEY

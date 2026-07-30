@@ -124,7 +124,7 @@ export default function CoursesPage({ session }) {
       </div>
 
       {showUpgrade && (
-        <UpgradePrompt session={session} onClose={() => setShowUpgrade(false)} />
+        <UpgradePrompt session={session} trigger="courses" onClose={() => setShowUpgrade(false)} />
       )}
     </div>
   )

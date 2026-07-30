@@ -16,6 +16,11 @@ export function useChat(settings) {
   const messagesRef = useRef([])
   const modeRef = useRef('chat')
   const sessionRef = useRef({ ts: Date.now() })
+  // A ref rather than state: ChildPage reads this synchronously right after
+  // awaiting sendMessage, and the object returned by this hook is a fresh
+  // literal every render, so a state value read through a stale closure
+  // could lag behind the setState made inside sendMessage's own catch block.
+  const limitReachedRef = useRef(false)
 
   const memoryRef = useRef('')
 
@@ -76,6 +81,7 @@ export function useChat(settings) {
 
   const sendMessage = useCallback(async (userText, currentMode) => {
     setError(null)
+    limitReachedRef.current = false
     const currentM = currentMode || modeRef.current
     const userMsg = { role: 'user', content: userText }
 
@@ -110,6 +116,9 @@ export function useChat(settings) {
         friendly = "Oops! I need a magic key to talk. Ask a grown-up to add it in the settings!"
       } else if (err.message === 'RATE_LIMIT') {
         friendly = "Whoa, I need a little rest! Try again in a minute, okay?"
+      } else if (err.message === 'FREE_LIMIT_REACHED' || err.message === 'PRO_REQUIRED') {
+        limitReachedRef.current = true
+        friendly = "Let's take a little break from chatting for today!"
       } else {
         friendly = "Hmm, something went a little funny! Can you try again?"
       }
@@ -127,5 +136,5 @@ export function useChat(settings) {
     sessionRef.current = { ts: Date.now() }
   }, [])
 
-  return { messages, loading, error, mode, switchMode, sendMessage, clearChat }
+  return { messages, loading, error, mode, switchMode, sendMessage, clearChat, limitReachedRef }
 }

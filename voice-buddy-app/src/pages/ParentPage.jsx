@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import PrintSheet from '../components/PrintSheet.jsx'
 import { getSettings, saveSettings, migratePinIfNeeded, hashPin, getActiveChildId } from '../utils/storage.js'
 import { testConnection } from '../services/chatService.js'
@@ -47,11 +47,21 @@ const ICE_SERVERS = {
 
 export default function ParentPage({ session }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [tab, setTab] = useState('Settings')
   const [settings, setSettings] = useState(() => getSettings())
   const speech = useSpeech(settings)
-  const { isPro } = useSubscription()
-  const [showLimitUpgrade, setShowLimitUpgrade] = useState(false)
+  const { isPro, tier, daysLeft } = useSubscription()
+  // Which feature triggered the upgrade prompt, so its copy can be
+  // contextual (see UpgradePrompt's TRIGGERS map) instead of one generic
+  // pitch reused everywhere. null = closed.
+  const [upgradeTrigger, setUpgradeTrigger] = useState(null)
+
+  // ChildPage redirects here with this when a child hits the free daily
+  // chat limit and a grown-up enters the PIN to unlock more.
+  useEffect(() => {
+    if (location.state?.openUpgrade) setUpgradeTrigger(location.state.openUpgrade)
+  }, [location.state])
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [previewStatus, setPreviewStatus] = useState('idle') // idle | speaking
   const [pinInput, setPinInput] = useState('')
@@ -295,6 +305,7 @@ export default function ParentPage({ session }) {
   }
 
   const startCamera = async () => {
+    if (!isPro) { setUpgradeTrigger('camera'); return }
     if (camStatus !== 'idle' && camStatus !== 'error') return
     setCamConfirming(false)
     setCamStatus('requesting')
@@ -353,6 +364,7 @@ export default function ParentPage({ session }) {
   }
 
   const startRecording = async () => {
+    if (!isPro) { setUpgradeTrigger('messages'); return }
     if (recStatus === 'recording' || recStatus === 'sending') return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -453,6 +465,20 @@ export default function ParentPage({ session }) {
           Log out
         </button>
       </div>
+
+      {/* Trial status banner */}
+      {tier === 'trial' && daysLeft !== null && daysLeft <= 3 && (
+        <div className={styles.trialBanner}>
+          <span>Your free trial ends in {daysLeft} day{daysLeft === 1 ? '' : 's'}.</span>
+          <button className={styles.trialBannerBtn} onClick={() => setUpgradeTrigger('trialEnding')}>Add payment method</button>
+        </div>
+      )}
+      {tier === 'free' && daysLeft === 0 && (
+        <div className={`${styles.trialBanner} ${styles.trialBannerEnded}`}>
+          <span>Your free trial has ended.</span>
+          <button className={styles.trialBannerBtn} onClick={() => setUpgradeTrigger('trialEnded')}>Subscribe to Buddy Pro</button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className={styles.tabs}>
@@ -603,7 +629,7 @@ export default function ParentPage({ session }) {
                   <p className={styles.hint}>Buddy gives a friendly heads-up 5 minutes before, then pauses with a gentle goodnight screen. Your PIN unlocks more time instantly.</p>
                 </>
               ) : (
-                <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setShowLimitUpgrade(true)}>
+                <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setUpgradeTrigger('timeLimit')}>
                   Upgrade to Pro to set a daily limit
                 </button>
               )}
@@ -768,30 +794,40 @@ export default function ParentPage({ session }) {
         {/* ---- MESSAGES ---- */}
         {tab === 'Messages' && (
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Send Voice Message to Buddy</h2>
-            <p className={styles.hint} style={{ marginBottom: 20 }}>
-              Hold the button and speak. Release when done — Buddy will hear it right away!
-            </p>
+            <h2 className={styles.sectionTitle}>
+              Send Voice Message to Buddy {!isPro && <IconLock size={11} />}
+            </h2>
+            {isPro ? (
+              <>
+                <p className={styles.hint} style={{ marginBottom: 20 }}>
+                  Hold the button and speak. Release when done — Buddy will hear it right away!
+                </p>
 
-            <div className={styles.recordArea}>
-              <button
-                className={`${styles.recordBtn} ${recStatus === 'recording' ? styles.recording : ''}`}
-                onPointerDown={startRecording}
-                onPointerUp={stopRecording}
-                onPointerLeave={stopRecording}
-                disabled={recStatus === 'sending'}
-                aria-label={recStatus === 'recording' ? 'Recording, release to send' : 'Hold to record a voice message'}
-              >
-                {recStatus === 'sent' ? <IconCheck size={22} /> : recStatus === 'error' ? <IconX size={22} /> : <IconMic size={22} />}
+                <div className={styles.recordArea}>
+                  <button
+                    className={`${styles.recordBtn} ${recStatus === 'recording' ? styles.recording : ''}`}
+                    onPointerDown={startRecording}
+                    onPointerUp={stopRecording}
+                    onPointerLeave={stopRecording}
+                    disabled={recStatus === 'sending'}
+                    aria-label={recStatus === 'recording' ? 'Recording, release to send' : 'Hold to record a voice message'}
+                  >
+                    {recStatus === 'sent' ? <IconCheck size={22} /> : recStatus === 'error' ? <IconX size={22} /> : <IconMic size={22} />}
+                  </button>
+                  <p className={styles.recLabel}>
+                    {recStatus === 'recording' ? 'Recording... release to send'
+                      : recStatus === 'sending' ? 'Sending to Buddy...'
+                      : recStatus === 'sent'    ? 'Message sent!'
+                      : recStatus === 'error'   ? 'Something went wrong, try again'
+                      : 'Hold to record'}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setUpgradeTrigger('messages')}>
+                Upgrade to Pro to send Buddy a voice message
               </button>
-              <p className={styles.recLabel}>
-                {recStatus === 'recording' ? 'Recording... release to send'
-                  : recStatus === 'sending' ? 'Sending to Buddy...'
-                  : recStatus === 'sent'    ? 'Message sent!'
-                  : recStatus === 'error'   ? 'Something went wrong, try again'
-                  : 'Hold to record'}
-              </p>
-            </div>
+            )}
 
             <h2 className={styles.sectionTitle} style={{ marginTop: 24 }}>Sent Messages</h2>
             {msgsLoading ? (
@@ -861,7 +897,7 @@ export default function ParentPage({ session }) {
                 )}
               </>
             ) : (
-              <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setShowLimitUpgrade(true)}>
+              <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setUpgradeTrigger('story')}>
                 Upgrade to Pro to leave Buddy a story idea
               </button>
             )}
@@ -871,57 +907,67 @@ export default function ParentPage({ session }) {
         {/* ---- CAMERA ---- */}
         {tab === 'Camera' && (
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Live Camera</h2>
-            <p className={styles.hint} style={{ marginBottom: 16 }}>
-              Opens the camera on the kids device so you can check in remotely.
-              The app must be open on their screen.
-            </p>
-
-            <div className={styles.cameraBox}>
-              <video
-                ref={camVideoRef}
-                className={styles.cameraVideo}
-                autoPlay
-                playsInline
-                style={{ display: camStatus === 'streaming' ? 'block' : 'none' }}
-              />
-              {camStatus !== 'streaming' && (
-                <div className={styles.cameraPlaceholder}>
-                  {camStatus === 'idle'       && <span className={styles.camIdleIcon}><IconPhoto size={34} /></span>}
-                  {camStatus === 'requesting' && <p className={styles.camMsg}>Connecting to device...</p>}
-                  {camStatus === 'error'      && <p className={styles.camErr}>{camError}</p>}
-                </div>
-              )}
-            </div>
-
-            {camConfirming ? (
-              <div className={styles.field} style={{ marginTop: 16 }}>
-                <p className={styles.hint} style={{ marginBottom: 10 }}>
-                  This turns on the camera on your child's device right now, without asking
-                  them first. Continue?
-                </p>
-                <div className={styles.btnRow}>
-                  <button className={styles.btnSave} onClick={startCamera}>Yes, start camera</button>
-                  <button className={styles.btnTest} onClick={() => setCamConfirming(false)}>Cancel</button>
-                </div>
-              </div>
+            <h2 className={styles.sectionTitle}>
+              Live Camera {!isPro && <IconLock size={11} />}
+            </h2>
+            {!isPro ? (
+              <button className={styles.input} style={{ textAlign: 'left', color: 'var(--ink-dim)' }} onClick={() => setUpgradeTrigger('camera')}>
+                Upgrade to Pro for peace-of-mind camera check-ins
+              </button>
             ) : (
-              <div className={styles.btnRow} style={{ marginTop: 16 }}>
-                {(camStatus === 'idle' || camStatus === 'error') ? (
-                  <button className={styles.btnSave} onClick={() => setCamConfirming(true)}>
-                    <IconCamera size={16} /> Start Camera
-                  </button>
-                ) : (
-                  <button className={styles.btnDanger} onClick={stopCamera}>
-                    Stop Camera
-                  </button>
-                )}
-              </div>
-            )}
+              <>
+                <p className={styles.hint} style={{ marginBottom: 16 }}>
+                  Opens the camera on the kids device so you can check in remotely.
+                  The app must be open on their screen.
+                </p>
 
-            <p className={styles.hint} style={{ marginTop: 12 }}>
-              A camera icon will appear on the kids screen while the camera is active.
-            </p>
+                <div className={styles.cameraBox}>
+                  <video
+                    ref={camVideoRef}
+                    className={styles.cameraVideo}
+                    autoPlay
+                    playsInline
+                    style={{ display: camStatus === 'streaming' ? 'block' : 'none' }}
+                  />
+                  {camStatus !== 'streaming' && (
+                    <div className={styles.cameraPlaceholder}>
+                      {camStatus === 'idle'       && <span className={styles.camIdleIcon}><IconPhoto size={34} /></span>}
+                      {camStatus === 'requesting' && <p className={styles.camMsg}>Connecting to device...</p>}
+                      {camStatus === 'error'      && <p className={styles.camErr}>{camError}</p>}
+                    </div>
+                  )}
+                </div>
+
+                {camConfirming ? (
+                  <div className={styles.field} style={{ marginTop: 16 }}>
+                    <p className={styles.hint} style={{ marginBottom: 10 }}>
+                      This turns on the camera on your child's device right now, without asking
+                      them first. Continue?
+                    </p>
+                    <div className={styles.btnRow}>
+                      <button className={styles.btnSave} onClick={startCamera}>Yes, start camera</button>
+                      <button className={styles.btnTest} onClick={() => setCamConfirming(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.btnRow} style={{ marginTop: 16 }}>
+                    {(camStatus === 'idle' || camStatus === 'error') ? (
+                      <button className={styles.btnSave} onClick={() => setCamConfirming(true)}>
+                        <IconCamera size={16} /> Start Camera
+                      </button>
+                    ) : (
+                      <button className={styles.btnDanger} onClick={stopCamera}>
+                        Stop Camera
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                <p className={styles.hint} style={{ marginTop: 12 }}>
+                  A camera icon will appear on the kids screen while the camera is active.
+                </p>
+              </>
+            )}
           </div>
         )}
 
@@ -1045,7 +1091,9 @@ export default function ParentPage({ session }) {
         )}
       </div>
 
-      {showLimitUpgrade && <UpgradePrompt session={session} onClose={() => setShowLimitUpgrade(false)} />}
+      {upgradeTrigger && (
+        <UpgradePrompt session={session} trigger={upgradeTrigger} onClose={() => setUpgradeTrigger(null)} />
+      )}
       {showAvatarPicker && (
         <AvatarPicker
           session={session}
