@@ -15,6 +15,24 @@ export default function AuthPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const [oauthLoading, setOauthLoading] = useState(false)
+
+  const handleFacebookLogin = async () => {
+    setError('')
+    setOauthLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: window.location.origin + '/app' },
+      })
+      if (error) throw error
+      // Browser redirects to Facebook; App.jsx picks up the session on return.
+    } catch (err) {
+      setError(err.message || 'Facebook login failed')
+      setOauthLoading(false)
+    }
+  }
+
   const handle = async (e) => {
     e.preventDefault()
     setError('')
@@ -148,6 +166,16 @@ export default function AuthPage() {
             {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Log In'}
           </button>
         </form>
+
+        <div className={styles.divider}><span>or</span></div>
+
+        <button className={styles.facebookBtn} onClick={handleFacebookLogin} disabled={oauthLoading} type="button">
+          <svg width="18" height="18" viewBox="0 0 36 36" aria-hidden="true">
+            <rect width="36" height="36" rx="8" fill="#1877F2" />
+            <path fill="#fff" d="M24.5 18h-4v11h-4.6V18h-2.9v-4h2.9v-2.6c0-3.5 1.7-5.6 5.7-5.6h3.4v4h-2.1c-1.6 0-1.7.6-1.7 1.7V14h3.9l-.6 4Z" />
+          </svg>
+          {oauthLoading ? 'Redirecting…' : 'Continue with Facebook'}
+        </button>
 
         <p className={styles.hint}>
           {mode === 'login'

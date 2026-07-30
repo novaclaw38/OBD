@@ -160,6 +160,44 @@
 .submit:disabled { opacity: 0.6; box-shadow: 0 7px 0 var(--c-grape-d); }
 .submit:active:not(:disabled) { transform: translateY(4px) scale(0.98); box-shadow: 0 3px 0 var(--c-grape-d); }
 
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--ink-dim);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ece4fb;
+}
+
+.facebookBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  min-height: 48px;
+  background: #fff;
+  border: 2px solid #ece4fb;
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.facebookBtn:active:not(:disabled) { transform: scale(0.98); background: #faf9fd; }
+.facebookBtn:disabled { opacity: 0.6; }
+
 .hint {
   margin-top: 22px;
   font-size: 0.9rem;

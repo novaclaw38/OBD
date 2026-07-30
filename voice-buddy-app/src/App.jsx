@@ -11,6 +11,8 @@ const AuthPage    = lazy(() => import('./pages/AuthPage.jsx'))
 const LandingPage = lazy(() => import('./pages/LandingPage.jsx'))
 const CoursesPage = lazy(() => import('./pages/CoursesPage.jsx'))
 const LessonPage  = lazy(() => import('./pages/LessonPage.jsx'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'))
+const DataDeletionPage  = lazy(() => import('./pages/DataDeletionPage.jsx'))
 
 const Loader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#030712' }}>
@@ -48,6 +50,8 @@ export default function App() {
           {/* Public */}
           <Route path="/"      element={session ? <Navigate to="/app" replace /> : <LandingPage />} />
           <Route path="/login" element={session ? <Navigate to="/app" replace /> : <AuthPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/data-deletion" element={<DataDeletionPage />} />
 
           {/* Authenticated */}
           <Route path="/app"     element={session ? <ChildPage session={session} />  : <Navigate to="/" replace />} />
