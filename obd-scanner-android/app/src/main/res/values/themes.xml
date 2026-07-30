@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme applied before Compose takes over. Uses a dark splash that
+         matches the app's dark-first design so there is no white flash. -->
+    <style name="Theme.ObdScanner" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/obd_background</item>
+        <item name="android:navigationBarColor">@color/obd_background</item>
+        <item name="android:windowBackground">@color/obd_background</item>
+    </style>
+</resources>
