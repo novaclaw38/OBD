@@ -13,6 +13,9 @@ const CoursesPage = lazy(() => import('./pages/CoursesPage.jsx'))
 const LessonPage  = lazy(() => import('./pages/LessonPage.jsx'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'))
 const DataDeletionPage  = lazy(() => import('./pages/DataDeletionPage.jsx'))
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage.jsx'))
+const RefundPolicyPage   = lazy(() => import('./pages/RefundPolicyPage.jsx'))
+const CookiePolicyPage   = lazy(() => import('./pages/CookiePolicyPage.jsx'))
 
 const Loader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#030712' }}>
@@ -52,6 +55,9 @@ export default function App() {
           <Route path="/login" element={session ? <Navigate to="/app" replace /> : <AuthPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/data-deletion" element={<DataDeletionPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/refunds" element={<RefundPolicyPage />} />
+          <Route path="/cookies" element={<CookiePolicyPage />} />
 
           {/* Authenticated */}
           <Route path="/app"     element={session ? <ChildPage session={session} />  : <Navigate to="/" replace />} />

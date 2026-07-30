@@ -80,6 +80,13 @@ export default function PrivacyPolicyPage() {
           <li>You can request full account and data deletion — see <a href="/data-deletion">Data Deletion Instructions</a>.</li>
         </ul>
 
+        <h2>Related policies</h2>
+        <p>
+          See also our <a href="/terms">Terms of Service</a>,{' '}
+          <a href="/refunds">Refund &amp; Cancellation Policy</a>, and{' '}
+          <a href="/cookies">Cookie Policy</a>.
+        </p>
+
         <h2>Contact us</h2>
         <p>
           Questions about this policy or your data can be sent to{' '}
