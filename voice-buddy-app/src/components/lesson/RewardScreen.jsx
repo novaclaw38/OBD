@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import BuddyAvatar from '../BuddyAvatar.jsx'
+import { masteryTier } from '../../hooks/useProgress.js'
 import styles from './RewardScreen.module.css'
 import { IconStar, IconPrinter, IconTrophy, IconArrowLeft } from '../icons.jsx'
 
 const STAR_COUNT = 12
 
-export default function RewardScreen({ lesson, course, childName, avatarType, avatarColor, costume, onBack }) {
+const TIER_LABEL = { gold: '🥇 Gold — nailed it first try!', silver: '🥈 Silver — great work!', bronze: '🥉 Bronze — you got there!' }
+
+export default function RewardScreen({ lesson, course, childName, avatarType, avatarColor, costume, masteryScore, onBack }) {
   const [printTarget, setPrintTarget] = useState(null)
+  const tier = masteryTier(masteryScore)
 
   const handlePrint = (target) => {
     setPrintTarget(target)
@@ -39,6 +43,7 @@ export default function RewardScreen({ lesson, course, childName, avatarType, av
           <p className={styles.sub}>
             You finished <strong>{lesson.title}</strong>!
           </p>
+          {tier && <p className={styles.tierBadge}>{TIER_LABEL[tier]}</p>}
 
           <div className={styles.actions}>
             <button className={styles.sheetBtn} onClick={() => handlePrint('sheet')}>

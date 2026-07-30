@@ -8,10 +8,11 @@ import { sendVoiceMessage, fetchMessages, fetchMessageById, markPlayed } from '.
 import { sendStoryRequest, fetchSentStoryRequests } from '../services/storyRequestService.js'
 import { supabase } from '../lib/supabase.js'
 import { useSpeech } from '../hooks/useSpeech.js'
-import { useCompletions } from '../hooks/useCompletions.js'
+import { useProgress, masteryTier } from '../hooks/useProgress.js'
 import { useSubscription } from '../hooks/useSubscription.jsx'
 import { VOICE_OPTIONS, DEFAULT_VOICE, isValidVoiceKey } from '../utils/voiceOptions.js'
 import { COURSES } from '../utils/courses.js'
+import { SUBJECTS } from '../utils/subjects.js'
 import { updateChild } from '../services/childrenService.js'
 import ChildrenManager from '../components/ChildrenManager.jsx'
 import styles from './ParentPage.module.css'
@@ -102,7 +103,7 @@ export default function ParentPage({ session }) {
   const [camConfirming, setCamConfirming] = useState(false)
   const [playingMsgId, setPlayingMsgId] = useState(null)
   const playAudioRef = useRef(null)
-  const { completions } = useCompletions()
+  const { completions, records } = useProgress()
 
   // One-time migration of any pre-existing plaintext parentPin to a hash.
   useEffect(() => {
@@ -788,6 +789,47 @@ export default function ParentPage({ session }) {
                 )
               })}
             </div>
+
+            {(() => {
+              const learned = [...completions]
+                .map((key) => {
+                  const [courseId, lessonId] = key.split(':')
+                  const course = COURSES.find((c) => c.id === courseId)
+                  const lesson = course?.lessons.find((l) => l.id === lessonId)
+                  const record = records.get(key)
+                  return lesson ? { course, lesson, ...record } : null
+                })
+                .filter(Boolean)
+                .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0))
+                .slice(0, 8)
+
+              if (!learned.length) return null
+              const TIER_ICON = { gold: '🥇', silver: '🥈', bronze: '🥉' }
+              return (
+                <div style={{ marginTop: 28 }}>
+                  <h3 className={styles.sectionTitle} style={{ fontSize: 15 }}>Recently Learned</h3>
+                  <p className={styles.hint} style={{ marginBottom: 14 }}>
+                    What {settings.childName || 'your child'} can actually do now — not just what they clicked through.
+                  </p>
+                  <ul className={styles.courseProgressList}>
+                    {learned.map(({ course, lesson, masteryScore }) => {
+                      const tier = masteryTier(masteryScore)
+                      const subject = SUBJECTS.find((s) => s.id === course.subject)
+                      return (
+                        <li key={`${course.id}:${lesson.id}`} className={styles.courseProgressCard}>
+                          <div className={styles.courseProgressHeader}>
+                            <span className={styles.courseProgressName}>
+                              {subject?.emoji} {lesson.objective || lesson.title}
+                            </span>
+                            {tier && <span>{TIER_ICON[tier]}</span>}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )
+            })()}
           </div>
         )}
 

@@ -94,6 +94,18 @@
   margin-bottom: 24px;
 }
 
+.tierBadge {
+  font-family: var(--font-head);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255,255,255,0.6);
+  border-radius: var(--r-pill);
+  padding: 8px 18px;
+  margin: -14px 0 24px;
+  display: inline-block;
+}
+
 /* ── Buttons ── */
 .actions {
   display: flex;

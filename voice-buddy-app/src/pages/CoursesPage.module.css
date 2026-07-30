@@ -221,10 +221,40 @@
 
 .lessonEmoji { font-size: 18px; flex-shrink: 0; }
 
-.lessonTitle {
+.lessonTextCol {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lessonTitle {
   font-size: 14px;
   font-weight: 600;
+  color: var(--ink);
+}
+
+.lessonObjective {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  line-height: 1.3;
+}
+
+.subjectSection {
+  margin-bottom: 8px;
+}
+
+.subjectHeading {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px 12px;
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 800;
   color: var(--ink);
 }
 

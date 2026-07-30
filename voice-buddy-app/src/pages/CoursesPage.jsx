@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { COURSES } from '../utils/courses.js'
+import { SUBJECTS, sortSubjectsForAge } from '../utils/subjects.js'
 import { useSubscription } from '../hooks/useSubscription.jsx'
-import { useCompletions } from '../hooks/useCompletions.js'
+import { useProgress } from '../hooks/useProgress.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import UpgradePrompt from '../components/UpgradePrompt.jsx'
 import BuddyAvatar from '../components/BuddyAvatar.jsx'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getSettings } from '../utils/storage.js'
 import { pickRandom } from '../utils/prompts.js'
 import { IconArrowLeft, IconArrowRight, IconLock, IconCheck } from '../components/icons.jsx'
@@ -24,8 +25,13 @@ export default function CoursesPage({ session }) {
   const [expanded, setExpanded] = useState(null)
   const [settings] = useState(() => getSettings())
   const durationLabel = (settings.childAge || 7) <= 6 ? '~15 min' : '~30 min'
-  const { completions } = useCompletions()
+  const { completions } = useProgress()
   const speech = useSpeech(settings)
+
+  const orderedSubjects = useMemo(
+    () => sortSubjectsForAge(SUBJECTS, settings.childAge || 7).filter(s => COURSES.some(c => c.subject === s.id)),
+    [settings.childAge]
+  )
 
   // Read the course list aloud on arrival — a non-reader can't tell what's
   // here from text alone. Speaks once per visit.
@@ -68,60 +74,68 @@ export default function CoursesPage({ session }) {
         </div>
       </header>
 
-      <div className={styles.grid}>
-        {COURSES.map((course) => (
-          <div key={course.id} className={styles.courseCard}>
-            <div
-              className={styles.courseHeader}
-              style={{ background: `linear-gradient(135deg, ${course.color[0]}, ${course.color[1]})` }}
-            >
-              {/* Illustrated cover (FLUX-generated); the gradient behind it
-                  doubles as the loading state. */}
-              <img
-                className={styles.courseCover}
-                src={`/courses/${course.id}.webp`}
-                alt=""
-                loading="lazy"
-                width="960"
-                height="549"
-              />
-              {!isPro && <span className={styles.lockBadge}><IconLock size={13} /> Pro</span>}
-            </div>
-            <div className={styles.courseBody}>
-              <h2 className={styles.courseName}>{course.title}</h2>
-              <p className={styles.courseDesc}>{course.description}</p>
-              <button
-                className={styles.expandBtn}
-                onClick={() => handleExpand(course)}
-              >
-                {expanded === course.id ? 'Hide lessons ▲' : `${course.lessons.length} lessons ▼`}
-              </button>
+      {orderedSubjects.map((subject) => (
+        <section key={subject.id} className={styles.subjectSection}>
+          <h2 className={styles.subjectHeading}>{subject.emoji} {subject.title}</h2>
+          <div className={styles.grid}>
+            {COURSES.filter(c => c.subject === subject.id).map((course) => (
+              <div key={course.id} className={styles.courseCard}>
+                <div
+                  className={styles.courseHeader}
+                  style={{ background: `linear-gradient(135deg, ${course.color[0]}, ${course.color[1]})` }}
+                >
+                  {/* Illustrated cover (FLUX-generated); the gradient behind it
+                      doubles as the loading state. */}
+                  <img
+                    className={styles.courseCover}
+                    src={`/courses/${course.id}.webp`}
+                    alt=""
+                    loading="lazy"
+                    width="960"
+                    height="549"
+                  />
+                  {!isPro && <span className={styles.lockBadge}><IconLock size={13} /> Pro</span>}
+                </div>
+                <div className={styles.courseBody}>
+                  <h2 className={styles.courseName}>{course.title}</h2>
+                  <p className={styles.courseDesc}>{course.description}</p>
+                  <button
+                    className={styles.expandBtn}
+                    onClick={() => handleExpand(course)}
+                  >
+                    {expanded === course.id ? 'Hide lessons ▲' : `${course.lessons.length} lessons ▼`}
+                  </button>
 
-              {expanded === course.id && (
-                <ul className={styles.lessons}>
-                  {course.lessons.map((lesson, i) => (
-                    <li key={lesson.id}>
-                      <button
-                        className={styles.lessonBtn}
-                        onClick={() => handleLesson(course.id, lesson.id)}
-                      >
-                        <span className={styles.lessonNum}>{i + 1}</span>
-                        <span className={styles.lessonEmoji}>{lesson.emoji}</span>
-                        <span className={styles.lessonTitle}>{lesson.title}</span>
-                        {completions.has(`${course.id}:${lesson.id}`) && (
-                          <span className={styles.lessonCheck}><IconCheck size={14} /></span>
-                        )}
-                        <span className={styles.lessonDuration}>{durationLabel}</span>
-                        <span className={styles.lessonArrow}>{isPro ? <IconArrowRight size={16} /> : <IconLock size={16} />}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                  {expanded === course.id && (
+                    <ul className={styles.lessons}>
+                      {course.lessons.map((lesson, i) => (
+                        <li key={lesson.id}>
+                          <button
+                            className={styles.lessonBtn}
+                            onClick={() => handleLesson(course.id, lesson.id)}
+                          >
+                            <span className={styles.lessonNum}>{i + 1}</span>
+                            <span className={styles.lessonEmoji}>{lesson.emoji}</span>
+                            <span className={styles.lessonTextCol}>
+                              <span className={styles.lessonTitle}>{lesson.title}</span>
+                              {lesson.objective && <span className={styles.lessonObjective}>{lesson.objective}</span>}
+                            </span>
+                            {completions.has(`${course.id}:${lesson.id}`) && (
+                              <span className={styles.lessonCheck}><IconCheck size={14} /></span>
+                            )}
+                            <span className={styles.lessonDuration}>{durationLabel}</span>
+                            <span className={styles.lessonArrow}>{isPro ? <IconArrowRight size={16} /> : <IconLock size={16} />}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
+      ))}
 
       {showUpgrade && (
         <UpgradePrompt session={session} trigger="courses" onClose={() => setShowUpgrade(false)} />

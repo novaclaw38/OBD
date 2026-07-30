@@ -4,13 +4,19 @@ import { COURSES } from '../utils/courses.js'
 import { pickNarration } from '../utils/pickNarration.js'
 import { getSettings } from '../utils/storage.js'
 import { useSpeech } from '../hooks/useSpeech.js'
-import { useCompletions } from '../hooks/useCompletions.js'
+import { useProgress } from '../hooks/useProgress.js'
 import BuddyAvatar from '../components/BuddyAvatar.jsx'
 import SpeechBubble from '../components/SpeechBubble.jsx'
 import ExplainCard from '../components/lesson/ExplainCard.jsx'
 import QuizCard from '../components/lesson/QuizCard.jsx'
 import LabelCard from '../components/lesson/LabelCard.jsx'
 import ActivityCard from '../components/lesson/ActivityCard.jsx'
+import TeachCard from '../components/lesson/TeachCard.jsx'
+import PracticeCard from '../components/lesson/PracticeCard.jsx'
+import ExploreCard from '../components/lesson/ExploreCard.jsx'
+import OpenResponseCard from '../components/lesson/OpenResponseCard.jsx'
+import StoryBuildCard from '../components/lesson/StoryBuildCard.jsx'
+import MasteryCheckCard from '../components/lesson/MasteryCheckCard.jsx'
 import RewardScreen from '../components/lesson/RewardScreen.jsx'
 import styles from './LessonPage.module.css'
 import { IconArrowLeft, IconArrowRight, IconPrinter, IconStar, IconSparkle } from '../components/icons.jsx'
@@ -27,7 +33,7 @@ export default function LessonPage() {
   const navigate = useNavigate()
   const [settings] = useState(() => getSettings()) // Fix 3: read localStorage once on mount
   const speech = useSpeech(settings)
-  const { markComplete } = useCompletions()
+  const { markComplete } = useProgress()
 
   const courseId = searchParams.get('course')
   const lessonId = searchParams.get('lesson')
@@ -40,7 +46,19 @@ export default function LessonPage() {
   const [buddyText, setBuddyText] = useState('')
   const [uiStatus, setUiStatus] = useState('idle')
   const [printTarget, setPrintTarget] = useState(null)
+  const [finalScore, setFinalScore] = useState(100)
   const stepKeyRef = useRef(0)
+  const stepScoresRef = useRef([])
+
+  // Reset the running score tally whenever a new lesson is entered.
+  useEffect(() => {
+    stepScoresRef.current = []
+  }, [courseId, lessonId])
+
+  const handleStepComplete = (score) => {
+    setStepComplete(true)
+    if (typeof score === 'number') stepScoresRef.current.push(score)
+  }
 
   const handlePrintSheet = () => {
     setPrintTarget('sheet')
@@ -84,9 +102,36 @@ export default function LessonPage() {
         speech.speak(itemsText, () => setUiStatus('idle'))
         return
       }
+      if (step.type === 'practice') {
+        const optionsText = step.options.map((o, i) => `${String.fromCharCode(65 + i)}: ${stripEmojiPrefix(o)}.`).join(' ')
+        setBuddyText(optionsText)
+        setUiStatus('speaking')
+        speech.speak(optionsText, () => setUiStatus('idle'))
+        return
+      }
+      if (step.type === 'explore') {
+        const itemsText = step.mode === 'match' || step.mode === 'sort'
+          ? (step.instruction || 'Tap to match them up!')
+          : `Find these: ${step.items.map(stripEmojiPrefix).join(', ')}.`
+        setBuddyText(itemsText)
+        setUiStatus('speaking')
+        speech.speak(itemsText, () => setUiStatus('idle'))
+        return
+      }
       setUiStatus('idle')
-      // explain cards auto-complete after narration
+      // Fact-only steps auto-complete after narration; story-build speaks its
+      // own beats and open-response/mastery-check drive their own completion.
       if (step.type === 'explain') setStepComplete(true)
+      if (step.type === 'teach') {
+        if (!step.checkQuestion) { setStepComplete(true); return }
+        setBuddyText(step.checkQuestion)
+        setUiStatus('speaking')
+        speech.speak(step.checkQuestion, () => {
+          setBuddyText(step.checkAnswer)
+          setUiStatus('speaking')
+          speech.speak(step.checkAnswer, () => { setUiStatus('idle'); setStepComplete(true) })
+        })
+      }
     })
     return () => speech.stopSpeaking()
   }, [stepIndex]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -100,7 +145,12 @@ export default function LessonPage() {
       setStepIndex(i => i + 1)
     } else {
       speech.stopSpeaking()
-      markComplete(courseId, lessonId)
+      const scores = stepScoresRef.current
+      const averageScore = scores.length
+        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+        : 100 // legacy lessons with no scored steps still read as fully complete
+      markComplete(courseId, lessonId, averageScore)
+      setFinalScore(averageScore)
       setPhase('reward')
     }
   }
@@ -123,6 +173,7 @@ export default function LessonPage() {
         avatarType={settings.avatarType}
         avatarColor={settings.avatarColor}
         costume={settings.costume}
+        masteryScore={finalScore}
         onBack={() => navigate('/courses')}
       />
     )
@@ -192,6 +243,30 @@ export default function LessonPage() {
             speech={speech}
             onComplete={() => setStepComplete(true)}
           />
+        )}
+        {step.type === 'teach' && (
+          <TeachCard key={stepKey} step={step} />
+        )}
+        {step.type === 'practice' && (
+          <PracticeCard key={stepKey} step={step} speech={speech} onComplete={handleStepComplete} />
+        )}
+        {step.type === 'explore' && (
+          <ExploreCard key={stepKey} step={step} onComplete={handleStepComplete} />
+        )}
+        {step.type === 'open-response' && (
+          <OpenResponseCard
+            key={stepKey}
+            step={step}
+            settings={settings}
+            speech={speech}
+            onComplete={handleStepComplete}
+          />
+        )}
+        {step.type === 'story-build' && (
+          <StoryBuildCard key={stepKey} step={step} speech={speech} onComplete={handleStepComplete} />
+        )}
+        {step.type === 'mastery-check' && (
+          <MasteryCheckCard key={stepKey} step={step} speech={speech} onComplete={handleStepComplete} />
         )}
       </div>
 
