@@ -5,6 +5,7 @@
   background: rgba(255,255,255,0.7);
   padding: 4px 8px;
   border-radius: var(--r-pill);
+  box-shadow: 0 2px 8px rgba(91, 33, 182, 0.1);
 }
 
 .face {
@@ -15,15 +16,33 @@
 }
 
 .bell {
-  fill: #e9e4fb;
-  stroke: var(--c-grape);
-  stroke-width: 1.4;
+  fill: url(#clockBell);
+  stroke: var(--c-grape-d);
+  stroke-width: 1.2;
+}
+
+.bellShine {
+  fill: #ffffff;
+  opacity: 0.75;
 }
 
 .rim {
-  fill: #ffffff;
+  fill: url(#clockFace);
   stroke: var(--c-grape);
-  stroke-width: 1.6;
+  stroke-width: 1.8;
+}
+
+.faceInner {
+  fill: none;
+  stroke: rgba(124, 58, 237, 0.18);
+  stroke-width: 1;
+}
+
+.gloss {
+  fill: #ffffff;
+  opacity: 0.5;
+  transform-origin: 20px 27px;
+  transform: rotate(-18deg);
 }
 
 .tick {
@@ -88,7 +107,7 @@
 }
 
 .foot {
-  fill: var(--c-grape-d);
+  fill: url(#clockFoot);
 }
 
 @keyframes clockSweep {

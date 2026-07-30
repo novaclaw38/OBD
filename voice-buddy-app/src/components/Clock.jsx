@@ -19,9 +19,11 @@ function useHandDelays() {
   }, [])
 }
 
-// A little wind-up desk alarm clock — twin bells, a swinging clapper between
-// them, and stubby feet — instead of a plain digital readout. Time is still
-// announced via aria-label for screen readers.
+// A little wind-up desk alarm clock — twin glassy bells, a swinging clapper
+// between them, and stubby feet — rendered with the same glossy-candy
+// gradients and soft glow as WorldBackdrop's sun/moon, so it reads as part
+// of the same illustrated world instead of a flat line-art readout. Time is
+// still announced via aria-label for screen readers.
 export default function Clock({ className, partOfDay }) {
   const [now, setNow] = useState(() => new Date())
   const delays = useHandDelays()
@@ -32,21 +34,48 @@ export default function Clock({ className, partOfDay }) {
   }, [])
 
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const night = partOfDay === 'night'
 
   return (
     <span className={`${styles.clock} ${className || ''}`} aria-label={`Current time ${time}`}>
       <svg className={styles.face} viewBox="0 0 40 46" aria-hidden="true">
-        {/* Bells — the rim (drawn after) covers each bell's lower half, so
-            only the dome peeks out above the face. */}
-        <circle className={styles.bell} cx="9"  cy="14" r="7" />
-        <circle className={styles.bell} cx="31" cy="14" r="7" />
+        <defs>
+          <radialGradient id="clockBell" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stopColor="#f4ecff" />
+            <stop offset="55%" stopColor="#d9c8fb" />
+            <stop offset="100%" stopColor="var(--c-grape)" />
+          </radialGradient>
+          <radialGradient id="clockFace" cx="38%" cy="32%" r="80%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="60%" stopColor="#fbf8ff" />
+            <stop offset="100%" stopColor="#e7ddfb" />
+          </radialGradient>
+          <linearGradient id="clockFoot" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--c-grape)" />
+            <stop offset="100%" stopColor="var(--c-grape-d)" />
+          </linearGradient>
+          <filter id="clockShadow" x="-60%" y="-60%" width="220%" height="220%">
+            <feDropShadow dx="0" dy="2" stdDeviation="1.6" floodColor="#5b21b6" floodOpacity="0.35" />
+          </filter>
+        </defs>
 
-        <circle className={styles.rim} cx="20" cy="27" r="15" />
+        <g filter="url(#clockShadow)">
+          {/* Bells — the rim (drawn after) covers each bell's lower half, so
+              only the dome peeks out above the face. */}
+          <circle className={styles.bell} cx="9"  cy="14" r="7" />
+          <circle className={styles.bell} cx="31" cy="14" r="7" />
+          <circle className={styles.bellShine} cx="6.5" cy="11" r="1.9" />
+          <circle className={styles.bellShine} cx="28.5" cy="11" r="1.9" />
+
+          <circle className={styles.rim} cx="20" cy="27" r="15" />
+          <circle className={styles.faceInner} cx="20" cy="27" r="12.4" />
+          <ellipse className={styles.gloss} cx="15.5" cy="20.5" rx="7.5" ry="5.5" />
+        </g>
 
         {[0, 90, 180, 270].map((deg) => (
           <circle
             key={deg}
-            className={deg === 0 ? (partOfDay === 'night' ? styles.tickMoon : styles.tickSun) : styles.tick}
+            className={deg === 0 ? (night ? styles.tickMoon : styles.tickSun) : styles.tick}
             cx="20" cy="14.5" r={deg === 0 ? 1.6 : 1.1}
             transform={`rotate(${deg} 20 27)`}
           />
