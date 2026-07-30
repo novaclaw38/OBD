@@ -17,9 +17,11 @@ import ChildrenManager from '../components/ChildrenManager.jsx'
 import styles from './ParentPage.module.css'
 import {
   IconArrowLeft, IconCheck, IconX, IconMic, IconSpeaker, IconPlay, IconPause,
-  IconCamera, IconPhoto, IconSun, IconMoon, IconPrinter, IconBook, IconPalette, IconLock,
+  IconCamera, IconPhoto, IconPrinter, IconBook, IconPalette, IconLock,
 } from '../components/icons.jsx'
 import UpgradePrompt from '../components/UpgradePrompt.jsx'
+import AvatarPicker from '../components/AvatarPicker.jsx'
+import BuddyAvatar from '../components/BuddyAvatar.jsx'
 
 // Which settings keys mirror a field on the cloud `children` row — kept in
 // sync so the Parent dashboard's child switcher shows current info.
@@ -30,7 +32,7 @@ const CHILD_ROW_FIELD = {
 // Grouped so the tab bar reads as clusters of related settings rather than
 // eight flat, same-weight buttons in a row.
 const TAB_GROUPS = [
-  { label: 'Child',    tabs: ['Children', 'Settings', 'Routines'] },
+  { label: 'Child',    tabs: ['Children', 'Settings'] },
   { label: 'Learning', tabs: ['Learning'] },
   { label: 'Connect',  tabs: ['Messages', 'Camera', 'History', 'Print'] },
   { label: 'Billing',  tabs: ['Subscription', 'Account'] },
@@ -50,6 +52,7 @@ export default function ParentPage({ session }) {
   const speech = useSpeech(settings)
   const { isPro } = useSubscription()
   const [showLimitUpgrade, setShowLimitUpgrade] = useState(false)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [previewStatus, setPreviewStatus] = useState('idle') // idle | speaking
   const [pinInput, setPinInput] = useState('')
   const [testStatus, setTestStatus] = useState(null)
@@ -58,6 +61,9 @@ export default function ParentPage({ session }) {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [printData, setPrintData] = useState(null)
   const [printType, setPrintType] = useState('story')
+  // Games is a static worksheet that never reads printData, so it's always
+  // printable; Story/Activity render printData.buddyText and need a selection.
+  const canPrintNow = printType === 'games' || !!printData
   const [recStatus, setRecStatus] = useState('idle') // idle | recording | sending | sent | error
   const [sentMessages, setSentMessages] = useState([])
   const [msgsLoading, setMsgsLoading] = useState(false)
@@ -224,6 +230,14 @@ export default function ParentPage({ session }) {
   const handlePreviewVoice = () => {
     setPreviewStatus('speaking')
     speech.speak("Hi! I'm Buddy, your child's AI friend!", () => setPreviewStatus('idle'))
+  }
+
+  const handleAvatarSave = ({ type, name, color, costume }) => {
+    updateSetting('avatarType', type)
+    updateSetting('buddyName', name)
+    updateSetting('avatarColor', color)
+    updateSetting('costume', costume)
+    setShowAvatarPicker(false)
   }
 
   // The PIN is never stored or displayed in plaintext. A typo here would
@@ -414,12 +428,16 @@ export default function ParentPage({ session }) {
   }
 
   const handlePrint = () => {
-    if (!printData) return
+    if (!canPrintNow) return
     window.print()
   }
 
   const handleSelectPrint = (entry) => {
     setPrintData(entry)
+    // A stale "Games" selection from an earlier visit would otherwise
+    // silently ignore this entry — Games is a generic worksheet that
+    // never reads printData, so force the type back to one that does.
+    setPrintType('story')
     setTab('Print')
   }
 
@@ -484,24 +502,19 @@ export default function ParentPage({ session }) {
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Avatar Color</label>
-              <div className={styles.colorRow}>
-                {[
-                  { hex: '#7c3aed', name: 'Purple' },
-                  { hex: '#db2777', name: 'Pink' },
-                  { hex: '#ea580c', name: 'Orange' },
-                  { hex: '#16a34a', name: 'Green' },
-                  { hex: '#2563eb', name: 'Blue' },
-                  { hex: '#0891b2', name: 'Teal' },
-                ].map(({ hex, name }) => (
-                  <button
-                    key={hex}
-                    className={`${styles.colorSwatch} ${settings.avatarColor === hex ? styles.selectedColor : ''}`}
-                    style={{ background: hex }}
-                    onClick={() => updateSetting('avatarColor', hex)}
-                    aria-label={name}
-                  />
-                ))}
+              <label className={styles.label}>Buddy Avatar</label>
+              <div className={styles.btnRow} style={{ alignItems: 'center' }}>
+                <BuddyAvatar
+                  type={settings.avatarType || 'bear'}
+                  costume={settings.costume}
+                  avatarColor={settings.avatarColor}
+                  status="idle"
+                  size={56}
+                  live={false}
+                />
+                <button className={styles.btnTest} onClick={() => setShowAvatarPicker(true)}>
+                  <IconPalette size={15} /> Customize
+                </button>
               </div>
             </div>
 
@@ -721,24 +734,6 @@ export default function ParentPage({ session }) {
                 <p className={styles.testError} style={{ marginTop: 10 }}>{updatePaymentError}</p>
               )}
             </div>
-          </div>
-        )}
-
-        {/* ---- ROUTINES ---- */}
-        {tab === 'Routines' && (
-          <div className={styles.section}>
-            <RoutineEditor
-              label="Morning Routine"
-              icon={<IconSun size={18} />}
-              steps={settings.morningRoutine}
-              onChange={(steps) => updateSetting('morningRoutine', steps)}
-            />
-            <RoutineEditor
-              label="Bedtime Routine"
-              icon={<IconMoon size={18} />}
-              steps={settings.bedtimeRoutine}
-              onChange={(steps) => updateSetting('bedtimeRoutine', steps)}
-            />
           </div>
         )}
 
@@ -1006,31 +1001,38 @@ export default function ParentPage({ session }) {
               <button
                 className={styles.btnPrint}
                 onClick={handlePrint}
-                disabled={!printData}
+                disabled={!canPrintNow}
               >
                 <IconPrinter size={16} /> Print Now
               </button>
-              <button
-                className={styles.btnSave}
-                onClick={() => setPrintData({
-                  mode: printType,
-                  userText: 'Sample content',
-                  buddyText: `Here is a fun ${printType} for ${settings.childName}! Enjoy it together.`,
-                  ts: Date.now(),
-                })}
-              >
-                Use Sample
-              </button>
+              {printType !== 'games' && (
+                <button
+                  className={styles.btnSave}
+                  onClick={() => setPrintData({
+                    mode: printType,
+                    userText: 'Sample content',
+                    buddyText: `Here is a fun ${printType} for ${settings.childName}! Enjoy it together.`,
+                    ts: Date.now(),
+                  })}
+                >
+                  Use Sample
+                </button>
+              )}
             </div>
 
-            {!printData && (
+            {!canPrintNow && (
               <p className={styles.hint} style={{ marginTop: 12 }}>
                 Select an item from History to print, or tap "Use Sample" to try a blank template.
               </p>
             )}
+            {printType === 'games' && (
+              <p className={styles.hint} style={{ marginTop: 12 }}>
+                Riddles and word games are a generic worksheet — they aren't tied to a specific conversation.
+              </p>
+            )}
 
             {/* Hidden print area — shown only during window.print() */}
-            {printData && (
+            {canPrintNow && (
               <div id="print-portal" className={styles.printPortal}>
                 <PrintSheet
                   type={printType}
@@ -1044,6 +1046,17 @@ export default function ParentPage({ session }) {
       </div>
 
       {showLimitUpgrade && <UpgradePrompt session={session} onClose={() => setShowLimitUpgrade(false)} />}
+      {showAvatarPicker && (
+        <AvatarPicker
+          session={session}
+          currentType={settings.avatarType}
+          currentName={settings.buddyName}
+          currentColor={settings.avatarColor}
+          currentCostume={settings.costume}
+          onSave={handleAvatarSave}
+          onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
     </main>
   )
 }
@@ -1090,55 +1103,5 @@ function SubscriptionSummary({ subInfo }) {
       <strong>Plan:</strong> Cancelled
       {accessUntil && <> — access until {fmt(accessUntil)}</>}.
     </p>
-  )
-}
-
-/* ---- Routine Editor ---- */
-function RoutineEditor({ label, icon, steps, onChange }) {
-  const [newStep, setNewStep] = useState('')
-
-  const move = (i, dir) => {
-    const arr = [...steps]
-    const j = i + dir
-    if (j < 0 || j >= arr.length) return
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    onChange(arr)
-  }
-
-  const remove = (i) => onChange(steps.filter((_, idx) => idx !== i))
-
-  const add = () => {
-    if (!newStep.trim()) return
-    onChange([...steps, newStep.trim()])
-    setNewStep('')
-  }
-
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <h3 className={styles.routineTitle}>{icon} {label}</h3>
-      <div className={styles.routineList}>
-        {steps.map((step, i) => (
-          <div key={i} className={styles.routineItem}>
-            <span className={styles.routineNum}>{i + 1}</span>
-            <span className={styles.routineText}>{step}</span>
-            <div className={styles.routineActions}>
-              <button onClick={() => move(i, -1)} disabled={i === 0} className={styles.moveBtn} aria-label={`Move "${step}" up`}>▲</button>
-              <button onClick={() => move(i, 1)} disabled={i === steps.length - 1} className={styles.moveBtn} aria-label={`Move "${step}" down`}>▼</button>
-              <button onClick={() => remove(i)} className={styles.removeBtn} aria-label={`Remove "${step}"`}><IconX size={14} /></button>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className={styles.addRow}>
-        <input
-          className={styles.input}
-          value={newStep}
-          onChange={(e) => setNewStep(e.target.value)}
-          placeholder="Add a step..."
-          onKeyDown={(e) => e.key === 'Enter' && add()}
-        />
-        <button className={styles.btnSave} onClick={add}>Add</button>
-      </div>
-    </div>
   )
 }
