@@ -424,12 +424,11 @@ export default function LandingPage() {
             <p className={styles.planDesc}>Great for getting started</p>
             <ul className={styles.planFeatures}>
               <li className={styles.yes}><IconCheck size={14} /> Chat with Buddy (10/day)</li>
-              <li className={styles.yes}><IconCheck size={14} /> Story mode</li>
-              <li className={styles.yes}><IconCheck size={14} /> Sing mode</li>
+              <li className={styles.yes}><IconCheck size={14} /> Sing-along mode</li>
               <li className={styles.no}><IconX size={14} /> Live camera</li>
               <li className={styles.no}><IconX size={14} /> Parent voice messages</li>
-              <li className={styles.no}><IconX size={14} /> All activity modes</li>
-              <li className={styles.no}><IconX size={14} /> Courses</li>
+              <li className={styles.no}><IconX size={14} /> Courses &amp; lessons</li>
+              <li className={styles.no}><IconX size={14} /> Progress tracking</li>
             </ul>
             <button className={styles.planBtn} onClick={() => navigate('/login')}>
               Continue Free
@@ -446,16 +445,16 @@ export default function LandingPage() {
               <span className={styles.planPer}>/month</span>
             </div>
             <p className={styles.planDesc}>
-              <strong className={styles.trialHighlight}>First 10 days free</strong>, then
-              R149/month. Cancel anytime before day 10 and you won't be charged.
+              <strong className={styles.trialHighlight}>First 10 days free — no card needed.</strong>{' '}
+              We&rsquo;ll ask for payment details on day 10. Then R149/month, cancel anytime.
             </p>
             <ul className={styles.planFeatures}>
               <li className={styles.yes}><IconCheck size={14} /> Unlimited daily messages</li>
-              <li className={styles.yes}><IconCheck size={14} /> All 10 activity modes</li>
+              <li className={styles.yes}><IconCheck size={14} /> All 10 courses — literacy, numeracy, science &amp; more</li>
+              <li className={styles.yes}><IconCheck size={14} /> Progress &amp; mastery tracking</li>
               <li className={styles.yes}><IconCheck size={14} /> Peace of mind camera</li>
               <li className={styles.yes}><IconCheck size={14} /> Parent voice messages</li>
-              <li className={styles.yes}><IconCheck size={14} /> Gardening, Robotics & Science courses</li>
-              <li className={styles.yes}><IconCheck size={14} /> Wake word &amp; avatar customisation</li>
+              <li className={styles.yes}><IconCheck size={14} /> Avatar &amp; costume customisation</li>
               <li className={styles.yes}><IconCheck size={14} /> Priority support</li>
             </ul>
             <button
