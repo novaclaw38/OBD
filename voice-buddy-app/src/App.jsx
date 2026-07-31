@@ -65,10 +65,17 @@ export default function App() {
           <Route path="/courses" element={session ? <CoursesPage session={session} /> : <Navigate to="/" replace />} />
           <Route path="/lesson"  element={session ? <LessonPage session={session} /> : <Navigate to="/" replace />} />
 
-          <Route path="/dev-child" element={<ChildPage session={{ user: { id: 'dev-preview' } }} />} />
-          <Route path="/dev-courses" element={<CoursesPage session={{ user: { id: 'dev-preview' } }} />} />
-          <Route path="/dev-parent" element={<ParentPage session={{ user: { id: 'dev-preview' } }} />} />
-          <Route path="/dev-lesson" element={<LessonPage session={{ user: { id: 'dev-preview' } }} />} />
+          {/* Dev-only preview routes. Wrapped in import.meta.env.DEV so Vite
+              statically eliminates them from production builds — they mint a
+              fake session and would otherwise bypass auth and the paywall. */}
+          {import.meta.env.DEV && (
+            <>
+              <Route path="/dev-child" element={<ChildPage session={{ user: { id: 'dev-preview' } }} />} />
+              <Route path="/dev-courses" element={<CoursesPage session={{ user: { id: 'dev-preview' } }} />} />
+              <Route path="/dev-parent" element={<ParentPage session={{ user: { id: 'dev-preview' } }} />} />
+              <Route path="/dev-lesson" element={<LessonPage session={{ user: { id: 'dev-preview' } }} />} />
+            </>
+          )}
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to={session ? '/app' : '/'} replace />} />

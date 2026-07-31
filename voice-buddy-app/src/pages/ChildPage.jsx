@@ -142,6 +142,14 @@ export default function ChildPage({ session }) {
     }
   }
 
+  // First-run PIN creation — persist the hash so the gate is real from here
+  // on. Previously every account silently defaulted to 1234.
+  const handlePinCreate = (hash) => {
+    const next = { ...settings, parentPinHash: hash }
+    saveSettings(next)
+    setSettings(next)
+  }
+
   // "Maybe later" on first run still marks onboarding done so the picker
   // only ever force-opens once, not on every visit.
   const handlePickerClose = () => {
@@ -548,7 +556,7 @@ export default function ChildPage({ session }) {
         </button>
         {showWindDownPin && (
           <>
-            <ParentPin correctPinHash={settings.parentPinHash} onSuccess={handleWindDownUnlock} />
+            <ParentPin correctPinHash={settings.parentPinHash} onCreate={handlePinCreate} onSuccess={handleWindDownUnlock} />
             <button className={styles.pinDismiss} onClick={() => setShowWindDownPin(false)} aria-label="Cancel" />
           </>
         )}
@@ -573,6 +581,7 @@ export default function ChildPage({ session }) {
           <>
             <ParentPin
               correctPinHash={settings.parentPinHash}
+              onCreate={handlePinCreate}
               onSuccess={() => {
                 setShowFreeLimit(false)
                 setShowFreeLimitPin(false)
@@ -609,7 +618,7 @@ export default function ChildPage({ session }) {
 
         {showPin && (
           <>
-            <ParentPin correctPinHash={settings.parentPinHash} onSuccess={handlePinSuccess} />
+            <ParentPin correctPinHash={settings.parentPinHash} onCreate={handlePinCreate} onSuccess={handlePinSuccess} />
             <button className={styles.pinDismiss} onClick={() => setShowPin(false)} aria-label="Cancel" />
           </>
         )}
@@ -766,6 +775,7 @@ export default function ChildPage({ session }) {
       {showPin && (
         <ParentPin
           correctPinHash={settings.parentPinHash}
+          onCreate={handlePinCreate}
           onSuccess={handlePinSuccess}
         />
       )}

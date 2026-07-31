@@ -5,6 +5,8 @@ import { pickNarration } from '../utils/pickNarration.js'
 import { getSettings } from '../utils/storage.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import { useProgress } from '../hooks/useProgress.js'
+import { useSubscription } from '../hooks/useSubscription.jsx'
+import UpgradePrompt from '../components/UpgradePrompt.jsx'
 import BuddyAvatar from '../components/BuddyAvatar.jsx'
 import SpeechBubble from '../components/SpeechBubble.jsx'
 import ExplainCard from '../components/lesson/ExplainCard.jsx'
@@ -28,12 +30,13 @@ function stripEmojiPrefix(s) {
   return i > -1 ? s.slice(i + 1) : s
 }
 
-export default function LessonPage() {
+export default function LessonPage({ session }) {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [settings] = useState(() => getSettings()) // Fix 3: read localStorage once on mount
   const speech = useSpeech(settings)
   const { markComplete } = useProgress()
+  const { isPro, loading: subLoading } = useSubscription()
 
   const courseId = searchParams.get('course')
   const lessonId = searchParams.get('lesson')
@@ -79,7 +82,7 @@ export default function LessonPage() {
 
   // Fix 1: hoisted above the if (!lesson) guard; guard inside the effect body
   useEffect(() => {
-    if (!lesson) return
+    if (!lesson || !isPro) return
     stepKeyRef.current += 1
     setStepComplete(false)
     setBuddyText(narration)
@@ -134,10 +137,23 @@ export default function LessonPage() {
       }
     })
     return () => speech.stopSpeaking()
-  }, [stepIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stepIndex, isPro]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!lesson) {
     return null
+  }
+
+  // Entitlement is re-checked here because CoursesPage's gate only covers the
+  // in-app tap path — a direct link to /lesson must not hand over paid content.
+  if (subLoading) return null
+  if (!isPro) {
+    return (
+      <UpgradePrompt
+        session={session}
+        trigger="courses"
+        onClose={() => navigate('/courses')}
+      />
+    )
   }
 
   const handleNext = () => {

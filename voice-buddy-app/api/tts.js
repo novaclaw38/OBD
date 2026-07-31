@@ -13,10 +13,13 @@ export const VOICES = {
   robo:    'en-US-Neural2-D', // deep/robot male
 }
 
-import { getUser, allowRequest } from './_auth.js'
+import { getUser, allowRequest, isEntitled } from './_auth.js'
 
 const RATE_LIMIT_PER_MIN = 30
-const RATE_LIMIT_PER_DAY = 1000
+// Free accounts still need enough TTS to cover their 10 daily chats; the cap
+// exists so an unpaid account can never out-spend a paid one on Google TTS.
+const FREE_LIMIT_PER_DAY = 60
+const PRO_LIMIT_PER_DAY  = 1000
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -25,9 +28,12 @@ export default async function handler(req, res) {
   const user = await getUser(req)
   if (!user) return res.status(401).json({ error: 'Sign in to use Buddy.' })
 
-  // Cost guard: cap how fast and how much any one account can spend.
+  // Cost guard: cap how fast and how much any one account can spend, with a
+  // much tighter daily ceiling for accounts that aren't paying.
+  const entitled = await isEntitled(user.id)
+  const dailyLimit = entitled ? PRO_LIMIT_PER_DAY : FREE_LIMIT_PER_DAY
   if (!(await allowRequest(user.id, 'tts-1m', RATE_LIMIT_PER_MIN, 60)) ||
-      !(await allowRequest(user.id, 'tts-1d', RATE_LIMIT_PER_DAY, 86400))) {
+      !(await allowRequest(user.id, 'tts-1d', dailyLimit, 86400))) {
     return res.status(429).json({ error: 'Too many requests — take a short break.' })
   }
 

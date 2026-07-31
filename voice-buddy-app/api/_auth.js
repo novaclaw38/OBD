@@ -4,7 +4,7 @@ const supabaseUrl = process.env.SUPABASE_URL
 const serviceKey  = process.env.SUPABASE_SERVICE_KEY
 
 // Modes any signed-in user may use without a subscription.
-const FREE_MODES = new Set(['chat', 'story', 'sing'])
+const FREE_MODES = new Set(['chat', 'sing'])
 
 function db() {
   if (!supabaseUrl || !serviceKey) {

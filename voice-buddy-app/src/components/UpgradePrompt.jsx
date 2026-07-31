@@ -11,7 +11,7 @@ const TRIGGERS = {
   messages:   { title: 'Unlock Parent Voice Messages',   sub: 'Sending Buddy voice notes to your child is part of Buddy Pro' },
   costume:    { title: 'Unlock Costumes',                sub: "Dressing up your child's Buddy is part of Buddy Pro" },
   child:      { title: 'Unlock a Second Child Profile',  sub: 'Adding more than one child is part of Buddy Pro' },
-  courses:    { title: 'Unlock All Courses',             sub: 'Gardening, Robotics, Science & more are part of Buddy Pro' },
+  courses:    { title: 'Unlock All Courses',             sub: 'Literacy, numeracy, science and more are part of Buddy Pro' },
   timeLimit:  { title: 'Unlock Daily Time Limits',       sub: 'Setting a screen-time limit is part of Buddy Pro' },
   story:      { title: 'Unlock Bedtime Story Ideas',     sub: 'Sending Buddy a story idea is part of Buddy Pro' },
   freeLimit:  { title: "You've Used Today's Free Chats", sub: 'Unlimited daily chatting is part of Buddy Pro' },
@@ -58,12 +58,12 @@ export default function UpgradePrompt({ onClose, session, trigger }) {
 
         <ul className={styles.perks}>
           {[
-            'All 10 activity modes',
+            'Unlimited daily messages',
+            'All 10 courses — literacy, numeracy, science & more',
+            'Progress & mastery tracking',
             'Peace of mind camera',
             'Parent voice messages',
-            'Gardening & Robotics courses',
-            'Wake word & avatar customisation',
-            'Unlimited daily messages',
+            'Avatar & costume customisation',
           ].map((perk) => (
             <li key={perk}><span className={styles.perkCheck}><IconCheck size={15} /></span>{perk}</li>
           ))}
