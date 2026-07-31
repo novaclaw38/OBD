@@ -101,12 +101,13 @@ export async function hashPin(pin) {
 }
 
 // One-time migration from the old plaintext `parentPin` field to a hash.
-// Idempotent — safe to call on every load. Returns the (possibly migrated)
-// settings object.
+// Idempotent — safe to call on every load. Accounts that never set a PIN are
+// deliberately left with parentPinHash === null so the parent area forces a
+// create flow, rather than shipping a guessable default.
 export async function migratePinIfNeeded(settings) {
   if (settings.parentPinHash) return settings
-  const plain = settings.parentPin || '1234'
-  const parentPinHash = await hashPin(plain)
+  if (!settings.parentPin) return settings
+  const parentPinHash = await hashPin(settings.parentPin)
   const next = { ...settings, parentPinHash }
   delete next.parentPin
   saveSettings(next)
