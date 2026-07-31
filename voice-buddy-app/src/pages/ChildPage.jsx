@@ -660,8 +660,10 @@ export default function ChildPage({ session }) {
     )
   }
 
+  const isDarkRealm = partOfDay === 'evening' || partOfDay === 'night'
+
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${isDarkRealm ? styles.darkRealm : ''}`}>
       <WorldBackdrop />
 
       {/* Daily activity — Buddy announces it by voice on boot; this card
@@ -681,7 +683,11 @@ export default function ChildPage({ session }) {
               {chat.mode !== 'chat' && (
                 <span className={styles.modeLabel}>{chat.mode} mode</span>
               )}
-              <Clock className={styles.clockBadge} partOfDay={partOfDay} />
+              <Clock
+                className={styles.clockBadge}
+                partOfDay={partOfDay}
+                onSpeak={(time) => speech.speak(`It's ${time}!`)}
+              />
             </div>
             <div className={styles.topBarRight}>
               {parentMessage && (

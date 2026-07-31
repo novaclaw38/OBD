@@ -23,8 +23,9 @@ function useHandDelays() {
 // between them, and stubby feet — rendered with the same glossy-candy
 // gradients and soft glow as WorldBackdrop's sun/moon, so it reads as part
 // of the same illustrated world instead of a flat line-art readout. Time is
-// still announced via aria-label for screen readers.
-export default function Clock({ className, partOfDay }) {
+// still announced via aria-label for screen readers, and tapping it has
+// Buddy say the time aloud for kids who can't read a clock face yet.
+export default function Clock({ className, partOfDay, onSpeak }) {
   const [now, setNow] = useState(() => new Date())
   const delays = useHandDelays()
 
@@ -37,7 +38,12 @@ export default function Clock({ className, partOfDay }) {
   const night = partOfDay === 'night'
 
   return (
-    <span className={`${styles.clock} ${className || ''}`} aria-label={`Current time ${time}`}>
+    <button
+      type="button"
+      className={`${styles.clock} ${className || ''}`}
+      aria-label={`Current time ${time}. Tap to hear it.`}
+      onClick={() => onSpeak?.(time)}
+    >
       <svg className={styles.face} viewBox="0 0 40 46" aria-hidden="true">
         <defs>
           <radialGradient id="clockBell" cx="35%" cy="30%" r="75%">
@@ -106,6 +112,6 @@ export default function Clock({ className, partOfDay }) {
         <rect className={styles.foot} x="9"  y="41" width="5" height="3" rx="1.4" />
         <rect className={styles.foot} x="26" y="41" width="5" height="3" rx="1.4" />
       </svg>
-    </span>
+    </button>
   )
 }

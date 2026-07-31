@@ -146,6 +146,14 @@
   white-space: nowrap;
 }
 
+/* Evening/night skies are dark, so --ink text (dark purple) nearly
+   vanishes against them — swap to light text with a dark shadow instead. */
+.darkRealm .modeLabel,
+.darkRealm .dockLabel {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
 .clockBadge {
   flex-shrink: 0;
 }
