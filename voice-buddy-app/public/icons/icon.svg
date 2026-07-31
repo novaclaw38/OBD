@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <radialGradient id="body" cx="38%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#fbbf6e"/>
+      <stop offset="100%" stop-color="#e08b2e"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Buddy, centred at 72% scale: safe inside the maskable 80% circle. -->
+  <g transform="translate(256 256) scale(3.7) translate(-50 -58)">
+    <circle cx="24" cy="30" r="13" fill="url(#body)"/>
+    <circle cx="76" cy="30" r="13" fill="url(#body)"/>
+    <path d="M50 18 C76 18 90 37 90 60 C90 85 73 97 50 97 C27 97 10 85 10 60 C10 37 24 18 50 18 Z" fill="url(#body)"/>
+    <ellipse cx="42" cy="40" rx="22" ry="14" fill="rgba(255,255,255,0.18)"/>
+    <circle cx="26" cy="64" r="8" fill="rgba(255,120,120,0.30)"/>
+    <circle cx="74" cy="64" r="8" fill="rgba(255,120,120,0.30)"/>
+    <circle cx="35" cy="52" r="9" fill="#ffffff"/>
+    <circle cx="65" cy="52" r="9" fill="#ffffff"/>
+    <circle cx="35" cy="52" r="5" fill="#1e1b4b"/>
+    <circle cx="65" cy="52" r="5" fill="#1e1b4b"/>
+    <circle cx="36.6" cy="50" r="1.8" fill="#ffffff"/>
+    <circle cx="66.6" cy="50" r="1.8" fill="#ffffff"/>
+    <ellipse cx="50" cy="74" rx="8" ry="6" fill="rgba(60,20,20,0.55)"/>
+  </g>
+</svg>
