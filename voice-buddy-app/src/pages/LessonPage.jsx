@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { COURSES } from '../utils/courses.js'
+import { fetchLesson } from '../services/courseService.js'
 import { pickNarration } from '../utils/pickNarration.js'
 import { getSettings } from '../utils/storage.js'
 import { useSpeech } from '../hooks/useSpeech.js'
@@ -40,8 +40,20 @@ export default function LessonPage({ session }) {
 
   const courseId = searchParams.get('course')
   const lessonId = searchParams.get('lesson')
-  const course = COURSES.find(c => c.id === courseId)
-  const lesson = course?.lessons.find(l => l.id === lessonId)
+
+  const [lessonData, setLessonData] = useState(null)
+  const [lessonError, setLessonError] = useState(null)
+  const course = lessonData?.course
+  const lesson = lessonData?.lesson
+
+  useEffect(() => {
+    if (!courseId || !lessonId || !isPro) return
+    let cancelled = false
+    fetchLesson(courseId, lessonId)
+      .then((data) => { if (!cancelled) setLessonData(data) })
+      .catch((err) => { if (!cancelled) setLessonError(err) })
+    return () => { cancelled = true }
+  }, [courseId, lessonId, isPro])
 
   const [stepIndex, setStepIndex] = useState(0)
   const [stepComplete, setStepComplete] = useState(false)
@@ -77,8 +89,8 @@ export default function LessonPage({ session }) {
 
   // Fix 2: navigate is a side-effect — must not be called during render
   useEffect(() => {
-    if (!lesson) navigate('/courses')
-  }, [lesson, navigate])
+    if (lessonError) navigate('/courses')
+  }, [lessonError, navigate])
 
   // Fix 1: hoisted above the if (!lesson) guard; guard inside the effect body
   useEffect(() => {
@@ -139,12 +151,11 @@ export default function LessonPage({ session }) {
     return () => speech.stopSpeaking()
   }, [stepIndex, isPro]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!lesson) {
-    return null
-  }
-
-  // Entitlement is re-checked here because CoursesPage's gate only covers the
-  // in-app tap path — a direct link to /lesson must not hand over paid content.
+  // Entitlement is checked before the lesson-presence guard below: for a free
+  // user, lesson content is never fetched (the effect above short-circuits on
+  // !isPro), so `lesson` would stay null forever and this branch would never
+  // be reached if it came second — a direct link to /lesson must still show
+  // the upgrade prompt, not silently render nothing.
   if (subLoading) return null
   if (!isPro) {
     return (
@@ -154,6 +165,10 @@ export default function LessonPage({ session }) {
         onClose={() => navigate('/courses')}
       />
     )
+  }
+
+  if (!lesson) {
+    return null
   }
 
   const handleNext = () => {

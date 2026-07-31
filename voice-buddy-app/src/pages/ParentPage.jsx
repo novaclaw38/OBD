@@ -11,7 +11,7 @@ import { useSpeech } from '../hooks/useSpeech.js'
 import { useProgress, masteryTier } from '../hooks/useProgress.js'
 import { useSubscription } from '../hooks/useSubscription.jsx'
 import { VOICE_OPTIONS, DEFAULT_VOICE, isValidVoiceKey } from '../utils/voiceOptions.js'
-import { COURSES } from '../utils/courses.js'
+import { useCourseCatalog } from '../hooks/useCourseCatalog.js'
 import { SUBJECTS } from '../utils/subjects.js'
 import { updateChild } from '../services/childrenService.js'
 import ChildrenManager from '../components/ChildrenManager.jsx'
@@ -104,6 +104,7 @@ export default function ParentPage({ session }) {
   const [playingMsgId, setPlayingMsgId] = useState(null)
   const playAudioRef = useRef(null)
   const { completions, records } = useProgress()
+  const { courses: COURSES } = useCourseCatalog()
 
   // One-time migration of any pre-existing plaintext parentPin to a hash.
   useEffect(() => {
@@ -526,6 +527,24 @@ export default function ParentPage({ session }) {
                 onChange={(e) => updateSetting('childName', e.target.value)}
                 placeholder="e.g. Byron"
               />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="childAge">Child's Age</label>
+              <select
+                id="childAge"
+                className={styles.input}
+                value={settings.childAge ?? ''}
+                onChange={(e) => updateSetting('childAge', Number(e.target.value))}
+              >
+                <option value="" disabled>Select an age</option>
+                {[3, 4, 5, 6, 7, 8, 9, 10].map((age) => (
+                  <option key={age} value={age}>{age} years old</option>
+                ))}
+              </select>
+              <p className={styles.hint}>
+                Sets which lessons are suggested first and how Buddy talks.
+              </p>
             </div>
 
             <div className={styles.field}>

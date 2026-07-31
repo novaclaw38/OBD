@@ -25,6 +25,7 @@ export function setActiveChildId(id) {
 const DEFAULTS = {
   onboarded: false,
   childName: '',
+  childAge: null, // 3-10; required at onboarding — see AvatarPicker
   buddyName: 'Buddy',
   avatarType: 'bear',
   parentPinHash: null, // SHA-256 hex; see migratePinIfNeeded/hashPin

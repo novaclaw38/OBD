@@ -191,6 +191,38 @@
   color: var(--ink);
 }
 
+.ageGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.ageBtn {
+  min-height: 44px;
+  border-radius: var(--r-md);
+  background: #f3ecfc;
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  border: 2px solid transparent;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.ageBtn:active { transform: scale(0.95); }
+
+.ageBtn.selected {
+  background: linear-gradient(135deg, var(--c-grape), var(--c-berry));
+  color: #fff;
+  border-color: var(--c-grape-d);
+}
+
+.saveBtn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 /* Buttons */
 .saveBtn {
   width: 100%;

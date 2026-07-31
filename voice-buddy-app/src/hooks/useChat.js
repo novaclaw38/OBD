@@ -58,9 +58,10 @@ export function useChat(settings) {
   const buildSystemPrompt = useCallback((currentMode) => {
     const childName  = settings?.childName  || 'there'
     const buddyName  = settings?.buddyName  || 'Buddy'
+    const childAge   = settings?.childAge   || 7
     const base = currentMode === 'sing'
-      ? PROMPTS.sing(childName, buddyName)
-      : PROMPTS.chat(childName, buddyName)
+      ? PROMPTS.sing(childName, buddyName, childAge)
+      : PROMPTS.chat(childName, buddyName, childAge)
     return base + timeContextLine() + memoryRef.current
   }, [settings])
 

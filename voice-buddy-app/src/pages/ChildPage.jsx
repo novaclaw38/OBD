@@ -129,8 +129,8 @@ export default function ChildPage({ session }) {
   const buddyName       = settings.buddyName       || 'Buddy'
   const avatarType      = settings.avatarType      || 'bear'
 
-  const handlePickerSave = ({ type, name, color, costume }) => {
-    const next = { ...settings, avatarType: type, buddyName: name, avatarColor: color, costume, onboarded: true }
+  const handlePickerSave = ({ type, name, color, costume, age }) => {
+    const next = { ...settings, avatarType: type, buddyName: name, avatarColor: color, costume, childAge: age, onboarded: true }
     saveSettings(next)
     setSettings(next)
     setShowPicker(false)
@@ -796,6 +796,7 @@ export default function ChildPage({ session }) {
           currentName={buddyName}
           currentColor={settings.avatarColor}
           currentCostume={settings.costume}
+          currentAge={settings.childAge}
           session={session}
           onSave={handlePickerSave}
           onClose={handlePickerClose}
