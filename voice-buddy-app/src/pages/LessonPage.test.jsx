@@ -35,7 +35,22 @@ vi.mock('../lib/supabase.js', () => ({
   },
 }))
 
+vi.mock('../services/courseService.js', () => ({
+  fetchLesson: vi.fn().mockResolvedValue({
+    course: { id: 'literacy', title: 'Literacy', emoji: '📖' },
+    lesson: {
+      id: 'blending-sounds',
+      title: 'Blending Sounds',
+      emoji: '🧩',
+      objective: 'Blend three letter sounds together to read a simple word.',
+      steps: [{ type: 'teach', narration: 'n', emoji: '🐱', fact: 'f' }],
+      printSheet: { title: 'Blending Sounds', facts: [], colourPrompt: '', visual: '🐱' },
+    },
+  }),
+}))
+
 import LessonPage from './LessonPage.jsx'
+import { fetchLesson } from '../services/courseService.js'
 
 const renderLesson = () =>
   render(
@@ -52,12 +67,13 @@ describe('LessonPage entitlement gate', () => {
     renderLesson()
     expect(screen.getByText(/Unlock All Courses/i)).toBeInTheDocument()
     expect(screen.queryByText(/Blending Sounds/i)).not.toBeInTheDocument()
+    expect(fetchLesson).not.toHaveBeenCalled()
   })
 
-  it('renders lesson content for an entitled user', () => {
+  it('renders lesson content for an entitled user', async () => {
     mockSub.isPro = true
     renderLesson()
-    expect(screen.getByText(/Blending Sounds/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Blending Sounds/i)).toBeInTheDocument()
     expect(screen.queryByText(/Unlock All Courses/i)).not.toBeInTheDocument()
   })
 })

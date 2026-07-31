@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { COURSES } from '../utils/courses.js'
 import { SUBJECTS, orderSubjects, lessonsForAge } from '../utils/subjects.js'
 import { useSubscription } from '../hooks/useSubscription.jsx'
 import { useProgress } from '../hooks/useProgress.js'
+import { useCourseCatalog } from '../hooks/useCourseCatalog.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import UpgradePrompt from '../components/UpgradePrompt.jsx'
 import BuddyAvatar from '../components/BuddyAvatar.jsx'
@@ -26,21 +26,23 @@ export default function CoursesPage({ session }) {
   const [settings] = useState(() => getSettings())
   const durationLabel = (settings.childAge || 7) <= 6 ? '~15 min' : '~30 min'
   const { completions } = useProgress()
+  const { courses: COURSES, loading: catalogLoading } = useCourseCatalog()
   const speech = useSpeech(settings)
 
   const orderedSubjects = useMemo(
     () => orderSubjects(SUBJECTS).filter(s => COURSES.some(c => c.subject === s.id)),
-    []
+    [COURSES]
   )
 
   // Read the course list aloud on arrival — a non-reader can't tell what's
   // here from text alone. Speaks once per visit.
   useEffect(() => {
+    if (!COURSES.length) return
     const names = COURSES.map((c) => c.title).join(', ')
     speech.speak(pickRandom(COURSES_INTRO)(names))
     return () => speech.stopSpeaking()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [COURSES])
 
   const handleExpand = (course) => {
     const opening = expanded !== course.id
@@ -58,6 +60,8 @@ export default function CoursesPage({ session }) {
     speech.stopSpeaking()
     navigate(`/lesson?course=${courseId}&lesson=${lessonId}`)
   }
+
+  if (catalogLoading) return <div className={styles.page}><div className={styles.bg} /></div>
 
   return (
     <div className={styles.page}>

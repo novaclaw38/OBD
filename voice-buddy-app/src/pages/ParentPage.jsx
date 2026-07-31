@@ -11,7 +11,7 @@ import { useSpeech } from '../hooks/useSpeech.js'
 import { useProgress, masteryTier } from '../hooks/useProgress.js'
 import { useSubscription } from '../hooks/useSubscription.jsx'
 import { VOICE_OPTIONS, DEFAULT_VOICE, isValidVoiceKey } from '../utils/voiceOptions.js'
-import { COURSES } from '../utils/courses.js'
+import { useCourseCatalog } from '../hooks/useCourseCatalog.js'
 import { SUBJECTS } from '../utils/subjects.js'
 import { updateChild } from '../services/childrenService.js'
 import ChildrenManager from '../components/ChildrenManager.jsx'
@@ -104,6 +104,7 @@ export default function ParentPage({ session }) {
   const [playingMsgId, setPlayingMsgId] = useState(null)
   const playAudioRef = useRef(null)
   const { completions, records } = useProgress()
+  const { courses: COURSES } = useCourseCatalog()
 
   // One-time migration of any pre-existing plaintext parentPin to a hash.
   useEffect(() => {
