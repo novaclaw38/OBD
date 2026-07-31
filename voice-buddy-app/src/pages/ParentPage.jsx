@@ -529,6 +529,24 @@ export default function ParentPage({ session }) {
             </div>
 
             <div className={styles.field}>
+              <label className={styles.label} htmlFor="childAge">Child's Age</label>
+              <select
+                id="childAge"
+                className={styles.input}
+                value={settings.childAge ?? ''}
+                onChange={(e) => updateSetting('childAge', Number(e.target.value))}
+              >
+                <option value="" disabled>Select an age</option>
+                {[3, 4, 5, 6, 7, 8, 9, 10].map((age) => (
+                  <option key={age} value={age}>{age} years old</option>
+                ))}
+              </select>
+              <p className={styles.hint}>
+                Sets which lessons are suggested first and how Buddy talks.
+              </p>
+            </div>
+
+            <div className={styles.field}>
               <label className={styles.label}>Buddy Avatar</label>
               <div className={styles.btnRow} style={{ alignItems: 'center' }}>
                 <BuddyAvatar

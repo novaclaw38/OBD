@@ -22,12 +22,18 @@ const COSTUMES = [
   { id: 'superhero', label: 'Hero' },
 ]
 
-export default function AvatarPicker({ currentType, currentName, currentColor, currentCostume, onSave, onClose, session }) {
+const AGES = [3, 4, 5, 6, 7, 8, 9, 10]
+
+export default function AvatarPicker({ currentType, currentName, currentColor, currentCostume, currentAge, onSave, onClose, session }) {
   const { isPro } = useSubscription()
   const [selType,  setSelType]  = useState(currentType  || 'bear')
   const [buddyName, setBuddyName] = useState(currentName || 'Buddy')
   const [selCostume, setSelCostume] = useState(currentCostume || null)
+  const [selAge, setSelAge] = useState(currentAge ?? null)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  // No age on file means this is first-run onboarding: age is required and
+  // the sheet can't be dismissed, because every lesson and prompt depends on it.
+  const isFirstRun = currentAge == null
 
   const selAvatar = AVATARS.find((a) => a.type === selType) || AVATARS[0]
 
@@ -37,7 +43,14 @@ export default function AvatarPicker({ currentType, currentName, currentColor, c
   }
 
   const handleSave = () => {
-    onSave({ type: selType, name: buddyName.trim() || 'Buddy', color: selAvatar.color, costume: isPro ? selCostume : null })
+    if (selAge == null) return
+    onSave({
+      type: selType,
+      name: buddyName.trim() || 'Buddy',
+      color: selAvatar.color,
+      costume: isPro ? selCostume : null,
+      age: selAge,
+    })
   }
 
   return (
@@ -104,12 +117,29 @@ export default function AvatarPicker({ currentType, currentName, currentColor, c
           )}
         </div>
 
-        <button className={styles.saveBtn} onClick={handleSave}>
+        {/* Age drives lesson band, narration wording and how Buddy speaks. */}
+        <p className={styles.costumeLabel}>How old is your child?</p>
+        <div className={styles.ageGrid}>
+          {AGES.map((age) => (
+            <button
+              key={age}
+              className={`${styles.ageBtn} ${selAge === age ? styles.selected : ''}`}
+              onClick={() => setSelAge(age)}
+              aria-pressed={selAge === age}
+            >
+              {age}
+            </button>
+          ))}
+        </div>
+
+        <button className={styles.saveBtn} onClick={handleSave} disabled={selAge == null}>
           Let's go! <IconSparkle size={18} />
         </button>
-        <button className={styles.cancelBtn} onClick={onClose}>
-          Maybe later
-        </button>
+        {!isFirstRun && (
+          <button className={styles.cancelBtn} onClick={onClose}>
+            Maybe later
+          </button>
+        )}
       </div>
 
       {showUpgrade && <UpgradePrompt session={session} trigger="costume" onClose={() => setShowUpgrade(false)} />}

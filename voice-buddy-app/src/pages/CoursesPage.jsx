@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { COURSES } from '../utils/courses.js'
-import { SUBJECTS, sortSubjectsForAge } from '../utils/subjects.js'
+import { SUBJECTS, orderSubjects, lessonsForAge } from '../utils/subjects.js'
 import { useSubscription } from '../hooks/useSubscription.jsx'
 import { useProgress } from '../hooks/useProgress.js'
 import { useSpeech } from '../hooks/useSpeech.js'
@@ -29,8 +29,8 @@ export default function CoursesPage({ session }) {
   const speech = useSpeech(settings)
 
   const orderedSubjects = useMemo(
-    () => sortSubjectsForAge(SUBJECTS, settings.childAge || 7).filter(s => COURSES.some(c => c.subject === s.id)),
-    [settings.childAge]
+    () => orderSubjects(SUBJECTS).filter(s => COURSES.some(c => c.subject === s.id)),
+    []
   )
 
   // Read the course list aloud on arrival — a non-reader can't tell what's
@@ -108,7 +108,7 @@ export default function CoursesPage({ session }) {
 
                   {expanded === course.id && (
                     <ul className={styles.lessons}>
-                      {course.lessons.map((lesson, i) => (
+                      {lessonsForAge(course, settings.childAge || 7).map((lesson, i) => (
                         <li key={lesson.id}>
                           <button
                             className={styles.lessonBtn}
