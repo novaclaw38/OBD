@@ -14,6 +14,7 @@ const TRIGGERS = {
   courses:    { title: 'Unlock All Courses',             sub: 'Literacy, numeracy, science and more are part of Buddy Pro' },
   timeLimit:  { title: 'Unlock Daily Time Limits',       sub: 'Setting a screen-time limit is part of Buddy Pro' },
   story:      { title: 'Unlock Bedtime Story Ideas',     sub: 'Sending Buddy a story idea is part of Buddy Pro' },
+  storyMode:  { title: 'Unlock Story Time',              sub: 'Interactive stories with Buddy are part of Buddy Pro' },
   freeLimit:  { title: "You've Used Today's Free Chats", sub: 'Unlimited daily chatting is part of Buddy Pro' },
   trialEnding:{ title: 'Your Trial Is Ending Soon',      sub: 'Add a payment method to keep everything in Buddy Pro' },
   trialEnded: { title: 'Your Free Trial Has Ended',      sub: 'Subscribe to keep everything you’ve been using in Buddy Pro' },

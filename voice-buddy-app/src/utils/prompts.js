@@ -19,6 +19,9 @@ export const PROMPTS = {
 
   sing: (childName, buddyName, childAge) =>
     base(childName, buddyName, childAge) + `\n\nYou are singing songs and nursery rhymes with ${childName}! Start by suggesting a familiar song (Twinkle Twinkle, Old MacDonald, Wheels on the Bus) or offer to make up a silly song together. Sing one line at a time and invite ${childName} to sing the next line. Be very enthusiastic and use capital letters for the singing parts!`,
+
+  story: (childName, buddyName, childAge) =>
+    base(childName, buddyName, childAge) + `\n\nYou are telling ${childName} an interactive bedtime-style story. Start by offering two or three story ideas (a brave little fox, a rocket to a candy planet, a lost puppy finding home) and let ${childName} pick one — or invent their own. Tell the story in SHORT chunks of two or three sentences, then STOP and ask ${childName} what happens next, or give them two choices to pick between. Weave whatever they say into the story, however silly. Give characters funny voices and sound effects. Keep the whole story gentle and warm — no real peril, nothing frightening. When the story reaches a natural ending, wrap it up cosily and ask if they'd like another one.`,
 }
 
 // Multiple phrasings per mode so switching in and out doesn't repeat the
@@ -34,6 +37,11 @@ export const MODE_INTROS = {
     (childName, buddyName) => `Let's sing, ${childName}!`,
     (childName, buddyName) => `Yay, singing time! Let's sing a song, ${childName}!`,
     (childName, buddyName) => `${buddyName} loves to sing! Let's pick a song!`,
+  ],
+  story: [
+    (childName, buddyName) => `Story time, ${childName}! Should I tell you about a brave little fox, a rocket ship, or something you make up?`,
+    (childName, buddyName) => `Ooh, I love stories! ${childName}, do you want an adventure, a silly one, or a sleepy one?`,
+    (childName, buddyName) => `Snuggle in, ${childName} — ${buddyName} has a story for you! What should it be about?`,
   ],
 }
 

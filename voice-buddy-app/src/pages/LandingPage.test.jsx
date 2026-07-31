@@ -19,9 +19,17 @@ const renderLanding = () =>
 describe('LandingPage pricing honesty', () => {
   it('does not advertise features that are not implemented', () => {
     renderLanding()
-    expect(screen.queryByText(/story mode/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/10 activity modes/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/wake word/i)).not.toBeInTheDocument()
+  })
+
+  it('sells story time under Pro, never on the free tier', () => {
+    renderLanding()
+    const storyItem = screen.getByText(/interactive story time/i)
+    expect(storyItem).toBeInTheDocument()
+    // The free plan card must not contain it.
+    const freeCard = screen.getByText('Free').closest('div')
+    expect(freeCard.textContent).not.toMatch(/story/i)
   })
 
   it('states the trial terms without implying a card is on file', () => {

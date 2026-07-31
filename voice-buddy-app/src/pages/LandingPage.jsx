@@ -450,6 +450,7 @@ export default function LandingPage() {
             </p>
             <ul className={styles.planFeatures}>
               <li className={styles.yes}><IconCheck size={14} /> Unlimited daily messages</li>
+              <li className={styles.yes}><IconCheck size={14} /> Interactive story time</li>
               <li className={styles.yes}><IconCheck size={14} /> All 10 courses — literacy, numeracy, science &amp; more</li>
               <li className={styles.yes}><IconCheck size={14} /> Progress &amp; mastery tracking</li>
               <li className={styles.yes}><IconCheck size={14} /> Peace of mind camera</li>

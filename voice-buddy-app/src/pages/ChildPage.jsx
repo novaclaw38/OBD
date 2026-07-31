@@ -6,6 +6,7 @@ import VoiceButton from '../components/VoiceButton.jsx'
 import BuddyMenu from '../components/BuddyMenu.jsx'
 import ParentPin from '../components/ParentPin.jsx'
 import AvatarPicker from '../components/AvatarPicker.jsx'
+import UpgradePrompt from '../components/UpgradePrompt.jsx'
 import WorldBackdrop from '../components/WorldBackdrop.jsx'
 import Clock from '../components/Clock.jsx'
 import { useSpeech } from '../hooks/useSpeech.js'
@@ -25,7 +26,7 @@ import { getDailyActivity, isDailyActivityDismissed, dismissDailyActivity } from
 import { getModeVoice } from '../utils/modeVoice.js'
 import { pickRandom } from '../utils/prompts.js'
 import styles from './ChildPage.module.css'
-import { IconMail, IconCamera, IconPlay, IconMusic, IconBook, IconPalette, IconGear } from '../components/icons.jsx'
+import { IconMail, IconCamera, IconPlay, IconMusic, IconBook, IconPalette, IconGear, IconSparkle } from '../components/icons.jsx'
 
 const WELCOME_BACK = [
   (childName, buddyName) => `Hey ${childName}, I'm back! What do you want to do now?`,
@@ -66,6 +67,7 @@ export default function ChildPage({ session }) {
   const [buddyText, setBuddyText] = useState('')
   const [userText, setUserText] = useState('')
   const [showPin, setShowPin] = useState(false)
+  const [upgradeTrigger, setUpgradeTrigger] = useState(null)
   // First-run: force the avatar picker open before anything else so a brand-new
   // signup sees who their Buddy is, instead of only discovering the 🎨 button.
   const [showPicker, setShowPicker] = useState(() => !getSettings().onboarded)
@@ -499,6 +501,33 @@ export default function ChildPage({ session }) {
     }, getModeVoice('sing'))
   }, [chat, speech, scheduleBubbleClear, cancelBubbleClear])
 
+  const handleStartStory = useCallback(() => {
+    if (!isPro) { setUpgradeTrigger('storyMode'); return }
+    cancelBubbleClear()
+    const intro = chat.switchMode('story')
+    setBuddyText(intro)
+    setUserText('')
+    setUiStatus('speaking')
+    speech.speak(intro, () => {
+      setUiStatus('idle')
+      scheduleBubbleClear()
+    }, getModeVoice('story'))
+  }, [isPro, chat, speech, scheduleBubbleClear, cancelBubbleClear])
+
+  // Any non-chat mode that renders in the normal UI needs a way out — without
+  // this a child is stuck in story mode until they reload the page.
+  const handleExitMode = useCallback(() => {
+    cancelBubbleClear()
+    const intro = chat.switchMode('chat')
+    setBuddyText(intro)
+    setUserText('')
+    setUiStatus('speaking')
+    speech.speak(intro, () => {
+      setUiStatus('idle')
+      scheduleBubbleClear()
+    })
+  }, [chat, speech, scheduleBubbleClear, cancelBubbleClear])
+
   const handleUserSpeech = useCallback((transcript) => {
     cancelBubbleClear()
     setUserText(transcript)
@@ -690,7 +719,13 @@ export default function ChildPage({ session }) {
           <div className={styles.topBar}>
             <div className={styles.topBarLeft}>
               {chat.mode !== 'chat' && (
-                <span className={styles.modeLabel}>{chat.mode} mode</span>
+                <button
+                  className={styles.modeLabel}
+                  onClick={handleExitMode}
+                  aria-label={`Leave ${chat.mode} mode`}
+                >
+                  {chat.mode} mode ✕
+                </button>
               )}
               <Clock
                 className={styles.clockBadge}
@@ -750,6 +785,10 @@ export default function ChildPage({ session }) {
                   <span className={`${styles.dockIcon} ${styles.dockPink}`}><IconMusic size={26} /></span>
                   <span className={styles.dockLabel}>Songs</span>
                 </button>
+                <button className={styles.dockBtn} onClick={handleStartStory}>
+                  <span className={`${styles.dockIcon} ${styles.dockBerry}`}><IconSparkle size={26} /></span>
+                  <span className={styles.dockLabel}>Story</span>
+                </button>
                 <button className={styles.dockBtn} onClick={() => navigate('/courses')}>
                   <span className={`${styles.dockIcon} ${styles.dockSky}`}><IconBook size={26} /></span>
                   <span className={styles.dockLabel}>Learn</span>
@@ -770,6 +809,14 @@ export default function ChildPage({ session }) {
           </div>
         </div>
       </div>
+
+      {upgradeTrigger && (
+        <UpgradePrompt
+          session={session}
+          trigger={upgradeTrigger}
+          onClose={() => setUpgradeTrigger(null)}
+        />
+      )}
 
       {/* PIN gate */}
       {showPin && (

@@ -581,3 +581,21 @@
   box-shadow: 0 4px 0 #b91c1c, 0 0 0 3px rgba(239,68,68,0.35);
   animation: envelopePulse 0.7s ease-in-out infinite alternate;
 }
+
+/* modeLabel is now a button; keep its look, add an affordance. */
+.modeLabel {
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--r-pill);
+  padding: 4px 12px;
+  min-height: 44px;
+}
+
+.modeLabel:active { transform: scale(0.96); }
+
+.dockBerry { background: linear-gradient(150deg, var(--c-berry), var(--c-grape-d)); }
+
+/* Three buttons on the left, two on the right — tighten the gap so the mic
+   stays centred on narrow phones. */
+.dockSide { gap: 8px; }
