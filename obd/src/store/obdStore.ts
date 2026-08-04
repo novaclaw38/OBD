@@ -33,6 +33,7 @@ interface ObdStoreState {
 
 const manager = new BluetoothManager();
 const service = new ObdService();
+let refreshInFlight = false;
 
 export const useObdStore = create<ObdStoreState>((set, get) => ({
   connection: { state: 'disconnected', device: null, error: null, protocol: null },
@@ -87,14 +88,20 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
   },
 
   refreshLiveData: async () => {
-    const { samples } = await service.readLiveDataBatch();
-    set((s) => {
-      const next = { ...s.liveData };
-      samples.forEach((sample) => {
-        next[sample.pid] = sample;
+    if (refreshInFlight) return;
+    refreshInFlight = true;
+    try {
+      const { samples } = await service.readLiveDataBatch();
+      set((s) => {
+        const next = { ...s.liveData };
+        samples.forEach((sample) => {
+          next[sample.pid] = sample;
+        });
+        return { liveData: next };
       });
-      return { liveData: next };
-    });
+    } finally {
+      refreshInFlight = false;
+    }
   },
 
   refreshDtcs: async () => {
