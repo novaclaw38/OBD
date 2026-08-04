@@ -7,7 +7,14 @@ import { cleanElmResponse, classifyElmError, extractPidData, parseHexLine } from
 const DEFAULT_TIMEOUT_MS = 4000;
 const INIT_TIMEOUT_MS = 6000;
 
-interface PendingCommand {
+interface QueuedCommand {
+  command: string;
+  timeoutMs: number;
+  resolve: (raw: string) => void;
+  reject: (err: ObdError) => void;
+}
+
+interface InFlightCommand {
   resolve: (raw: string) => void;
   reject: (err: ObdError) => void;
   timer: ReturnType<typeof setTimeout>;
@@ -22,8 +29,8 @@ interface PendingCommand {
 export class ObdService {
   private transport: BluetoothTransport | null = null;
   private buffer = '';
-  private pending: PendingCommand | null = null;
-  private queue: Array<{ command: string; timeoutMs: number }> = [];
+  private pending: InFlightCommand | null = null;
+  private queue: QueuedCommand[] = [];
   private unsubData: (() => void) | null = null;
   private unsubDisconnect: (() => void) | null = null;
   private disconnectListeners = new Set<(err: ObdError) => void>();
@@ -142,33 +149,21 @@ export class ObdService {
       } satisfies ObdError);
     }
     return new Promise<string>((resolve, reject) => {
-      this.queue.push({ command, timeoutMs });
-      this.processQueue(resolve, reject);
+      this.queue.push({ command, timeoutMs, resolve, reject });
+      if (!this.pending) this.drainNext();
     });
-  }
-
-  private currentResolvers: Array<{
-    resolve: (raw: string) => void;
-    reject: (err: ObdError) => void;
-  }> = [];
-
-  private processQueue(resolve: (raw: string) => void, reject: (err: ObdError) => void): void {
-    this.currentResolvers.push({ resolve, reject });
-    if (this.pending) return; // a command is already in flight; will drain in order
-    this.drainNext();
   }
 
   private drainNext(): void {
     const next = this.queue.shift();
-    const nextResolver = this.currentResolvers.shift();
-    if (!next || !nextResolver) return;
+    if (!next) return;
     this.buffer = '';
     this.pending = {
-      resolve: nextResolver.resolve,
-      reject: nextResolver.reject,
+      resolve: next.resolve,
+      reject: next.reject,
       timer: setTimeout(() => {
         this.pending = null;
-        nextResolver.reject({ code: 'TIMEOUT', message: `Command "${next.command}" timed out` });
+        next.reject({ code: 'TIMEOUT', message: `Command "${next.command}" timed out` });
         this.drainNext();
       }, next.timeoutMs),
     };
@@ -176,7 +171,7 @@ export class ObdService {
       if (!this.pending) return;
       clearTimeout(this.pending.timer);
       this.pending = null;
-      nextResolver.reject({
+      next.reject({
         code: 'CONNECTION_LOST',
         message: 'Failed to write command',
         raw: String(e),
@@ -204,9 +199,8 @@ export class ObdService {
       this.pending.reject(err);
       this.pending = null;
     }
+    this.queue.forEach((q) => q.reject(err));
     this.queue = [];
-    this.currentResolvers.forEach((r) => r.reject(err));
-    this.currentResolvers = [];
   }
 }
 

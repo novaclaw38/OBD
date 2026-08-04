@@ -73,6 +73,8 @@ class FakeElm327Transport implements BluetoothTransport {
         return '41 0C 1A F8'; // RPM = 1726
       case '010D':
         return '41 0D 5A'; // Speed = 90
+      case '0105':
+        return '41 05 5A'; // Coolant temp = 90 - 40 = 50
       case '03':
         return '43 01 33 00 00';
       case '07':
@@ -168,6 +170,26 @@ describe('ObdService integration', () => {
     await expect(pending).rejects.toMatchObject({ code: 'CONNECTION_LOST' });
   });
 
+  it('rejects still-queued (not yet in-flight) commands when the transport disconnects', async () => {
+    const transport = new FakeElm327Transport();
+    transport.scriptedFailures.add('010C'); // never replies, so it stays in flight
+    const service = new ObdService();
+    await service.attach(transport);
+
+    // First command is issued but never resolves, so it occupies the single
+    // in-flight slot. The second is issued without awaiting the first, so it
+    // sits behind it in `queue` rather than ever being written.
+    const inFlight = service.readPid('0C');
+    const stillQueued = service.readPid('0D');
+
+    transport.simulateDisconnect();
+
+    await expect(inFlight).rejects.toMatchObject({ code: 'CONNECTION_LOST' });
+    await expect(stillQueued).rejects.toMatchObject({ code: 'CONNECTION_LOST' });
+    // Only the in-flight command was ever written; the queued one never got there.
+    expect(transport.sentCommands).toEqual(['010C']);
+  });
+
   it('times out a command that never receives a response', async () => {
     jest.useFakeTimers();
     const transport = new FakeElm327Transport();
@@ -193,5 +215,22 @@ describe('ObdService integration', () => {
     expect(speed.value).toBe(90);
     // Commands must have been written one at a time, not interleaved.
     expect(transport.sentCommands).toEqual(['010C', '010D']);
+  });
+
+  it('resolves each of three back-to-back commands with its own matching reply', async () => {
+    const transport = new FakeElm327Transport();
+    const service = new ObdService();
+    await service.attach(transport);
+
+    const [rpm, speed, coolant] = await Promise.all([
+      service.readPid('0C'),
+      service.readPid('0D'),
+      service.readPid('05'),
+    ]);
+
+    expect(rpm).toMatchObject({ pid: '0C', value: 1726 });
+    expect(speed).toMatchObject({ pid: '0D', value: 90 });
+    expect(coolant).toMatchObject({ pid: '05', value: 50 });
+    expect(transport.sentCommands).toEqual(['010C', '010D', '0105']);
   });
 });
