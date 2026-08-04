@@ -29,18 +29,21 @@ export function decodeDtcBytes(a: number, b: number): string | null {
  * Parse a Mode 03 (stored) or Mode 07 (pending) response payload.
  * `bytes` excludes the mode/PID echo header, e.g. for "43 02 01 33 00 00"
  * pass [0x02, 0x01, 0x33, 0x00, 0x00] (first byte = code count, then pairs).
+ * An odd-length payload is treated as having a stray leading byte (e.g. a count byte), which is dropped before pairing.
  */
 export function parseDtcResponse(
   bytes: number[],
   status: 'stored' | 'pending',
 ): DiagnosticTroubleCode[] {
   const codes: DiagnosticTroubleCode[] = [];
-  // First byte after mode/PID echo is the number of codes in some adapters;
-  // more commonly the payload is just a stream of byte pairs. Handle both by
-  // scanning pairwise and skipping zero-pairs.
-  for (let i = 0; i + 1 < bytes.length; i += 2) {
-    const a = bytes[i];
-    const b = bytes[i + 1];
+  // A well-formed byte-pair stream always has an even length. Some adapters
+  // prepend a one-byte "number of codes" field before the pair stream; an
+  // odd total length is the signal that byte is present, so drop it before
+  // pairing rather than letting it desync every subsequent pair.
+  const pairBytes = bytes.length % 2 !== 0 ? bytes.slice(1) : bytes;
+  for (let i = 0; i + 1 < pairBytes.length; i += 2) {
+    const a = pairBytes[i];
+    const b = pairBytes[i + 1];
     const code = decodeDtcBytes(a, b);
     if (code) {
       codes.push({

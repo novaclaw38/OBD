@@ -46,4 +46,14 @@ describe('parseDtcResponse', () => {
   it('returns an empty array for an all-zero payload', () => {
     expect(parseDtcResponse([0x00, 0x00], 'stored')).toHaveLength(0);
   });
+
+  it('drops a stray leading count byte when the payload length is odd', () => {
+    // Same P0301/P0420 pair as the even-length case above, but with one
+    // extra leading byte (as some adapters send a "number of codes" byte
+    // before the pair stream) making the total length odd.
+    const withCountByte = parseDtcResponse([0x02, 0x03, 0x01, 0x04, 0x20], 'stored');
+    const withoutCountByte = parseDtcResponse([0x03, 0x01, 0x04, 0x20], 'stored');
+    expect(withCountByte).toEqual(withoutCountByte);
+    expect(withCountByte.map((c) => c.code)).toEqual(['P0301', 'P0420']);
+  });
 });
