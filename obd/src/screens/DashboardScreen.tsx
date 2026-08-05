@@ -10,7 +10,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 const POLL_INTERVAL_MS = 1500;
 
 export default function DashboardScreen({ navigation }: Props) {
-  const { liveData, refreshLiveData, connection, disconnect } = useObdStore();
+  const { liveData, refreshLiveData, connection, disconnect, forgetDevice } = useObdStore();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -33,6 +33,10 @@ export default function DashboardScreen({ navigation }: Props) {
     await disconnect();
   };
 
+  const handleForget = async () => {
+    await forgetDevice();
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
@@ -42,9 +46,14 @@ export default function DashboardScreen({ navigation }: Props) {
             {connection.device?.name ?? 'Adapter'} · Protocol {connection.protocol ?? '—'}
           </Text>
         </View>
-        <TouchableOpacity onPress={handleDisconnect} style={styles.disconnectButton}>
-          <Text style={styles.disconnectText}>Disconnect</Text>
-        </TouchableOpacity>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={handleDisconnect} style={styles.disconnectButton}>
+            <Text style={styles.disconnectText}>Disconnect</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleForget} style={styles.forgetButton}>
+            <Text style={styles.forgetText}>Forget adapter</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.grid}>
@@ -90,6 +99,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   disconnectText: { color: '#FF6B6B', fontWeight: '600', fontSize: 12 },
+  actions: { flexDirection: 'row', gap: 8 },
+  forgetButton: {
+    backgroundColor: '#1F2A37',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  forgetText: { color: '#8A94A6', fontWeight: '600', fontSize: 12 },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
