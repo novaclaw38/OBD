@@ -5,12 +5,14 @@ import ScanScreen from '../screens/ScanScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import DtcScreen from '../screens/DtcScreen';
 import VehicleInfoScreen from '../screens/VehicleInfoScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 export type RootStackParamList = {
   Scan: undefined;
   Dashboard: undefined;
   Dtc: undefined;
   VehicleInfo: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +41,11 @@ export default function RootNavigator() {
           name="VehicleInfo"
           component={VehicleInfoScreen}
           options={{ headerShown: true, title: 'Vehicle Info' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ headerShown: true, title: 'Settings' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
