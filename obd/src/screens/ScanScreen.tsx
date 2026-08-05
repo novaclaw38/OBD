@@ -1,18 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useObdStore } from '../store/obdStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { DiscoveredDevice } from '../types';
+import { getLastDevice } from '../storage/lastDevice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scan'>;
 
 export default function ScanScreen({ navigation }: Props) {
-  const { devices, scanning, scan, connect, connection } = useObdStore();
+  const { devices, scanning, scan, connect, disconnect, connection } = useObdStore();
+  const [reconnectTarget, setReconnectTarget] = useState<DiscoveredDevice | null>(null);
 
   useEffect(() => {
-    scan();
-  }, [scan]);
+    let cancelled = false;
+    getLastDevice().then((last) => {
+      if (cancelled) return;
+      if (last) {
+        const target: DiscoveredDevice = { id: last.id, name: last.name, transport: last.transport };
+        setReconnectTarget(target);
+        connect(target);
+      } else {
+        scan();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (connection.state === 'connected') {
@@ -20,9 +36,27 @@ export default function ScanScreen({ navigation }: Props) {
     }
   }, [connection.state, navigation]);
 
+  useEffect(() => {
+    if (reconnectTarget && connection.state === 'error') {
+      setReconnectTarget(null);
+      scan();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection.state, reconnectTarget]);
+
   const handleConnect = (device: DiscoveredDevice) => {
     connect(device);
   };
+
+  const handleCancelReconnect = async () => {
+    setReconnectTarget(null);
+    await disconnect();
+    scan();
+  };
+
+  const reconnecting =
+    reconnectTarget !== null &&
+    (connection.state === 'connecting' || connection.state === 'initializing');
 
   return (
     <View style={styles.container}>
@@ -31,7 +65,17 @@ export default function ScanScreen({ navigation }: Props) {
         {scanning ? 'Scanning for Bluetooth adapters…' : `${devices.length} device(s) found`}
       </Text>
 
-      {connection.state === 'connecting' || connection.state === 'initializing' ? (
+      {reconnecting ? (
+        <View style={styles.statusRow}>
+          <ActivityIndicator />
+          <Text style={styles.statusText}>
+            Reconnecting to {reconnectTarget?.name ?? 'adapter'}…
+          </Text>
+          <TouchableOpacity onPress={handleCancelReconnect} style={styles.cancelButton}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      ) : connection.state === 'connecting' || connection.state === 'initializing' ? (
         <View style={styles.statusRow}>
           <ActivityIndicator />
           <Text style={styles.statusText}>
@@ -77,7 +121,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '700', color: '#F5F7FA' },
   subtitle: { fontSize: 14, color: '#8A94A6', marginTop: 4, marginBottom: 16 },
   statusRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
-  statusText: { color: '#F5F7FA', marginLeft: 8 },
+  statusText: { color: '#F5F7FA', marginLeft: 8, flexShrink: 1 },
+  cancelButton: { marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 4 },
+  cancelText: { color: '#FF6B6B', fontWeight: '600', fontSize: 13 },
   error: { color: '#FF6B6B', marginBottom: 12 },
   list: { paddingBottom: 24 },
   deviceRow: {
