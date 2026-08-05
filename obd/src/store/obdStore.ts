@@ -9,6 +9,7 @@ import type {
 import { BluetoothManager } from '../bluetooth/BluetoothManager';
 import { ObdService } from '../obd/ObdService';
 import { decodeVin } from '../vehicleData/vpic';
+import { saveLastDevice, clearLastDevice } from '../storage/lastDevice';
 
 interface ObdStoreState {
   connection: ConnectionStatus;
@@ -25,6 +26,7 @@ interface ObdStoreState {
   scan: () => Promise<void>;
   connect: (device: DiscoveredDevice) => Promise<void>;
   disconnect: () => Promise<void>;
+  forgetDevice: () => Promise<void>;
   refreshLiveData: () => Promise<void>;
   refreshDtcs: () => Promise<void>;
   clearDtcs: () => Promise<void>;
@@ -70,6 +72,7 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
       set((s) => ({ connection: { ...s.connection, state: 'initializing' } }));
       const { protocol } = await service.initialize();
       set({ connection: { state: 'connected', device, error: null, protocol } });
+      await saveLastDevice({ id: device.id, name: device.name, transport: device.transport });
     } catch (e) {
       set({
         connection: { state: 'error', device: null, error: describeError(e), protocol: null },
@@ -85,6 +88,10 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
       liveData: {},
       dtcs: [],
     });
+  },
+
+  forgetDevice: async () => {
+    await clearLastDevice();
   },
 
   refreshLiveData: async () => {

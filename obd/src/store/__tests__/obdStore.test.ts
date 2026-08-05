@@ -1,6 +1,9 @@
 jest.mock('../../obd/ObdService');
+jest.mock('../../bluetooth/BluetoothManager');
 
 import { useObdStore } from '../obdStore';
+import { getLastDevice } from '../../storage/lastDevice';
+import type { DiscoveredDevice } from '../../types';
 
 describe('obdStore refreshLiveData backpressure', () => {
   beforeEach(() => {
@@ -34,5 +37,33 @@ describe('obdStore refreshLiveData backpressure', () => {
     await useObdStore.getState().refreshLiveData();
 
     expect(service.readLiveDataBatch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('obdStore remembered-device persistence', () => {
+  const device: DiscoveredDevice = { id: 'AA:BB:CC', name: 'OBDII', transport: 'classic' };
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const { manager, service } = useObdStore.getState();
+    (manager.connect as jest.Mock).mockResolvedValue({});
+    (service.initialize as jest.Mock).mockResolvedValue({ protocol: '6' });
+    await useObdStore.getState().forgetDevice();
+  });
+
+  it('remembers the device after a successful connect', async () => {
+    await useObdStore.getState().connect(device);
+
+    expect(await getLastDevice()).toEqual({ id: 'AA:BB:CC', name: 'OBDII', transport: 'classic' });
+  });
+
+  it('forgetDevice clears the remembered device without changing connection state', async () => {
+    await useObdStore.getState().connect(device);
+    const connectionBefore = useObdStore.getState().connection;
+
+    await useObdStore.getState().forgetDevice();
+
+    expect(await getLastDevice()).toBeNull();
+    expect(useObdStore.getState().connection).toEqual(connectionBefore);
   });
 });
