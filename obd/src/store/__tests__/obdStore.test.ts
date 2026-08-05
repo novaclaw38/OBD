@@ -66,6 +66,19 @@ describe('obdStore remembered-device persistence', () => {
     expect(await getLastDevice()).toBeNull();
     expect(useObdStore.getState().connection).toEqual(connectionBefore);
   });
+
+  it('does not fail the connection if persisting the device fails', async () => {
+    const AsyncStorage = require('@react-native-async-storage/async-storage');
+    const setItemSpy = jest.spyOn(AsyncStorage, 'setItem').mockRejectedValue(new Error('storage full'));
+
+    await useObdStore.getState().connect(device);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(useObdStore.getState().connection.state).toBe('connected');
+
+    setItemSpy.mockRestore();
+  });
 });
 
 describe('obdStore connect/disconnect race', () => {

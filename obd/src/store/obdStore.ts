@@ -64,6 +64,7 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
     set((s) => ({ connection: { ...s.connection, state: 'connecting', device, error: null } }));
     try {
       const transport = await manager.connect(device);
+      if (myGeneration !== connectGeneration) return;
       await service.attach(transport);
       service.onDisconnect((err) => {
         if (myGeneration !== connectGeneration) return;
@@ -72,12 +73,11 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
         });
       });
 
-      if (myGeneration !== connectGeneration) return;
       set((s) => ({ connection: { ...s.connection, state: 'initializing' } }));
       const { protocol } = await service.initialize();
       if (myGeneration !== connectGeneration) return;
       set({ connection: { state: 'connected', device, error: null, protocol } });
-      await saveLastDevice({ id: device.id, name: device.name, transport: device.transport });
+      saveLastDevice({ id: device.id, name: device.name, transport: device.transport }).catch(() => {});
     } catch (e) {
       if (myGeneration !== connectGeneration) return;
       set({
