@@ -45,6 +45,7 @@ export default function ScanScreen({ navigation }: Props) {
   }, [connection.state, reconnectTarget]);
 
   const handleConnect = (device: DiscoveredDevice) => {
+    setReconnectTarget(null);
     connect(device);
   };
 

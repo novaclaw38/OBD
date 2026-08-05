@@ -36,6 +36,7 @@ interface ObdStoreState {
 const manager = new BluetoothManager();
 const service = new ObdService();
 let refreshInFlight = false;
+let connectGeneration = 0;
 
 export const useObdStore = create<ObdStoreState>((set, get) => ({
   connection: { state: 'disconnected', device: null, error: null, protocol: null },
@@ -59,21 +60,26 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
   },
 
   connect: async (device: DiscoveredDevice) => {
+    const myGeneration = ++connectGeneration;
     set((s) => ({ connection: { ...s.connection, state: 'connecting', device, error: null } }));
     try {
       const transport = await manager.connect(device);
       await service.attach(transport);
       service.onDisconnect((err) => {
+        if (myGeneration !== connectGeneration) return;
         set({
           connection: { state: 'error', device: null, error: err.message, protocol: null },
         });
       });
 
+      if (myGeneration !== connectGeneration) return;
       set((s) => ({ connection: { ...s.connection, state: 'initializing' } }));
       const { protocol } = await service.initialize();
+      if (myGeneration !== connectGeneration) return;
       set({ connection: { state: 'connected', device, error: null, protocol } });
       await saveLastDevice({ id: device.id, name: device.name, transport: device.transport });
     } catch (e) {
+      if (myGeneration !== connectGeneration) return;
       set({
         connection: { state: 'error', device: null, error: describeError(e), protocol: null },
       });
@@ -81,6 +87,7 @@ export const useObdStore = create<ObdStoreState>((set, get) => ({
   },
 
   disconnect: async () => {
+    connectGeneration++;
     service.detach();
     await manager.disconnect();
     set({

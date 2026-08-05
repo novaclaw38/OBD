@@ -67,3 +67,31 @@ describe('obdStore remembered-device persistence', () => {
     expect(useObdStore.getState().connection).toEqual(connectionBefore);
   });
 });
+
+describe('obdStore connect/disconnect race', () => {
+  const device: DiscoveredDevice = { id: 'AA:BB:CC', name: 'OBDII', transport: 'classic' };
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    await useObdStore.getState().forgetDevice();
+  });
+
+  it('a stale connect() that rejects after disconnect() does not clobber connection state', async () => {
+    const { manager } = useObdStore.getState();
+    let rejectConnect!: (err: Error) => void;
+    const pending = new Promise((_resolve, reject) => {
+      rejectConnect = reject;
+    });
+    (manager.connect as jest.Mock).mockReturnValue(pending);
+
+    const connectPromise = useObdStore.getState().connect(device);
+
+    await useObdStore.getState().disconnect();
+    expect(useObdStore.getState().connection.state).toBe('disconnected');
+
+    rejectConnect(new Error('adapter went away'));
+    await connectPromise;
+
+    expect(useObdStore.getState().connection.state).toBe('disconnected');
+  });
+});
