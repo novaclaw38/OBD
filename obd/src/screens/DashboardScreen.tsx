@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useObdStore } from '../store/obdStore';
+import { useSettingsStore } from '../store/settingsStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { LIVE_DASHBOARD_PIDS } from '../obd/pids';
+import { formatSampleValue } from '../utils/units';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
@@ -11,6 +13,7 @@ const POLL_INTERVAL_MS = 1500;
 
 export default function DashboardScreen({ navigation }: Props) {
   const { liveData, refreshLiveData, connection, disconnect, forgetDevice } = useObdStore();
+  const { unitSystem } = useSettingsStore();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -59,12 +62,13 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.grid}>
         {LIVE_DASHBOARD_PIDS.map((pid) => {
           const sample = liveData[pid];
+          const display = sample ? formatSampleValue(sample, unitSystem) : null;
           return (
             <View key={pid} style={styles.card}>
               <Text style={styles.cardLabel}>{sample?.name ?? pid}</Text>
               <Text style={styles.cardValue}>
-                {sample ? String(sample.value) : '—'}
-                <Text style={styles.cardUnit}> {sample?.unit ?? ''}</Text>
+                {display ? String(display.value) : '—'}
+                <Text style={styles.cardUnit}> {display?.unit ?? ''}</Text>
               </Text>
             </View>
           );
@@ -80,6 +84,12 @@ export default function DashboardScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('VehicleInfo')}
         >
           <Text style={styles.navButtonText}>Vehicle Info</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Text style={styles.navButtonText}>Settings</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
