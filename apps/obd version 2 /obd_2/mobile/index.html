@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberDiagnostic — Field Companion</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+<div class="mobile-shell">
+  <main class="mobile-main" id="outlet"></main>
+  <nav class="mobile-tabbar">
+    <a href="#/dashboard" data-path="/dashboard">
+      <span aria-hidden="true">⌘</span>Dashboard
+    </a>
+    <a href="#/pocket-sensors" data-path="/pocket-sensors">
+      <span aria-hidden="true">⚙</span>Sensors
+    </a>
+    <a href="#/pdf-export" data-path="/pdf-export">
+      <span aria-hidden="true">▤</span>Report
+    </a>
+  </nav>
+</div>
+<div style="text-align:center;padding:8px;font-size:11px;">
+  <a href="../desktop/index.html" style="color:var(--cyan-primary);">→ Technician Console</a>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
